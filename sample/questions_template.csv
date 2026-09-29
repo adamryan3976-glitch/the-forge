@@ -1,0 +1,5 @@
+QuestionID,Grade,Strand,Expectation,Question,ImageURL,OptionA,OptionB,OptionC,OptionD,Correct,Active
+,3,Number,B1.1,Which number is 300 + 40 + 7?,,3047,347,374,30407,B,TRUE
+,3,Spatial Sense,E1.1,How many sides does a hexagon have?,,5,6,7,8,B,TRUE
+,5,Algebra,C1.4,What is the missing number? 7 × ☐ = 56,,6,7,8,9,C,TRUE
+,6,Financial Literacy,F1.1,A book costs $12.50. You pay with $20. How much change do you get?,,$7.50,$8.50,$7.00,$32.50,A,TRUE

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<style>
+  body { font: 14px/1.45 "Segoe UI", Roboto, Arial, sans-serif; color: #1d2433; margin: 0; padding: 4px 6px; }
+  h2 { font-size: 16px; margin: 14px 0 6px; }
+  p { margin: 4px 0 10px; }
+  .muted { color: #5b6477; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  input[type=text] { flex: 1; min-width: 300px; padding: 8px 10px; border: 1px solid #cfd5e1; border-radius: 8px; font: inherit; }
+  button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid #cfd5e1; background: #fff; cursor: pointer; }
+  button.primary { background: #2356c9; color: #fff; border-color: #2356c9; font-weight: 600; }
+  button:disabled { opacity: .5; cursor: wait; }
+  .box { border: 1px solid #dfe3ec; border-radius: 10px; padding: 12px; margin-bottom: 12px; background: #fff; }
+  .ok { background: #e3f4ea; color: #1e7d4f; border-radius: 8px; padding: 8px 10px; margin: 8px 0; white-space: pre-line; }
+  .warn { background: #fff2d9; color: #7a4d00; border-radius: 8px; padding: 8px 10px; margin: 8px 0; white-space: pre-line; }
+  .err { background: #fde7e5; color: #b3261e; border-radius: 8px; padding: 8px 10px; margin: 8px 0; white-space: pre-line; }
+  table { border-collapse: collapse; width: 100%; }
+  td { border-top: 1px solid #eef0f5; padding: 8px 6px; vertical-align: top; }
+  td.id { white-space: nowrap; font-weight: 600; width: 70px; }
+  td.text { color: #3a4254; }
+  td.drop { width: 260px; }
+  .paste { border: 2px dashed #b9c3d6; border-radius: 10px; min-height: 64px; display: grid; place-items: center;
+    text-align: center; color: #5b6477; padding: 6px; cursor: text; outline: none; }
+  .paste:focus { border-color: #2356c9; background: #f3f6fd; }
+  .paste.done { border-style: solid; border-color: #1e7d4f; background: #f1faf4; color: #1e7d4f; }
+  .paste img { max-width: 230px; max-height: 110px; display: block; margin: 0 auto 4px; }
+  .small { font-size: 12px; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 99px; background: #fff2d9; color: #7a4d00; }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h2 style="margin-top:0">1. Import from a Google Form</h2>
+    <p class="muted">Paste one Form's edit link (do one Form per grade). Picture blocks in the Form are saved to a private
+      <b>Math Check-In Pictures</b> folder in your Drive, and the Form's answer key is checked against the app's.</p>
+    <div class="row">
+      <input type="text" id="formUrl" placeholder="https://docs.google.com/forms/d/…/edit" aria-label="Google Form link">
+      <button class="primary" id="importBtn">Import</button>
+    </div>
+    <div id="importMsg"></div>
+  </div>
+
+  <div class="box">
+    <h2 style="margin-top:0">2. Paste the rest</h2>
+    <p class="muted">For pictures attached to a question: in the Form, right-click the picture → <b>Copy image</b>,
+      then click a box below and press <b>Ctrl+V</b>. You can also drop in an image file or a screenshot.</p>
+    <div id="list"><p class="muted">Loading…</p></div>
+  </div>
+
+<script>
+  function el(tag, attrs) {
+    var e = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) {
+      if (k === 'text') e.textContent = attrs[k];
+      else if (k === 'class') e.className = attrs[k];
+      else e.setAttribute(k, attrs[k]);
+    });
+    for (var i = 2; i < arguments.length; i++) if (arguments[i]) e.appendChild(typeof arguments[i] === 'string' ? document.createTextNode(arguments[i]) : arguments[i]);
+    return e;
+  }
+  function run(fn) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function (ok, bad) {
+      var r = google.script.run.withSuccessHandler(ok).withFailureHandler(function (e) { bad(new Error((e && e.message || String(e)).replace(/^(Exception|Error):\s*/, ''))); });
+      r[fn].apply(r, args);
+    });
+  }
+
+  // ---- 1. Import ----
+  document.getElementById('importBtn').onclick = function () {
+    var btn = this, msg = document.getElementById('importMsg');
+    var url = document.getElementById('formUrl').value.trim();
+    if (!url) return;
+    btn.disabled = true; msg.innerHTML = ''; msg.appendChild(el('p', { class: 'muted', text: 'Reading the Form… this can take a minute.' }));
+    run('importFromForm', url).then(function (r) {
+      msg.innerHTML = '';
+      var lines = ['“' + r.formTitle + '” → Grade ' + r.grade,
+        'Matched ' + r.matched + ' of ' + r.questionsInForm + ' questions.',
+        r.saved.length + ' picture(s) saved' + (r.saved.length ? ': ' + r.saved.map(function (s) { return s.qid + (s.activated ? ' ✓' : ' (review, then tick Active)'); }).join(', ') : '.')];
+      msg.appendChild(el('div', { class: 'ok', text: lines.join('\n') }));
+      if (r.note) msg.appendChild(el('div', { class: 'warn', text: r.note }));
+      if (r.mismatches.length) msg.appendChild(el('div', { class: 'err', text: 'Answer key differences (check these!):\n' +
+        r.mismatches.map(function (m) { return m.qid + ' — Form says "' + m.formAnswer + '", app says ' + m.appAnswer; }).join('\n') }));
+      else msg.appendChild(el('div', { class: 'ok', text: 'Answer keys match the Form. ✓' }));
+      if (r.unmatched.length) msg.appendChild(el('div', { class: 'warn', text: 'Form questions not matched:\n' + r.unmatched.join('\n') }));
+      loadList();
+    }).catch(function (e) { msg.innerHTML = ''; msg.appendChild(el('div', { class: 'err', text: e.message })); })
+      .then(function () { btn.disabled = false; });
+  };
+
+  // ---- 2. Paste ----
+  function loadList() {
+    run('getPictureStatus').then(function (rows) {
+      var list = document.getElementById('list');
+      list.innerHTML = '';
+      if (!rows.length) { list.appendChild(el('p', { class: 'muted', text: 'No questions need pictures.' })); return; }
+      var need = rows.filter(function (r) { return !r.hasImage; }).length;
+      list.appendChild(el('p', { text: need + ' question(s) still need a picture.' }));
+      var tb = el('tbody');
+      rows.forEach(function (q) { tb.appendChild(rowFor(q)); });
+      list.appendChild(el('table', {}, tb));
+    }).catch(function (e) { document.getElementById('list').textContent = e.message; });
+  }
+
+  function rowFor(q) {
+    var zone = el('div', { class: 'paste' + (q.hasImage ? ' done' : ''), tabindex: '0', role: 'button',
+      'aria-label': 'Paste picture for ' + q.id });
+    var file = el('input', { type: 'file', accept: 'image/*', style: 'display:none' });
+    setZone(zone, q.hasImage ? (q.active ? 'Picture saved ✓ — paste again to replace' : 'Picture saved — review, then tick Active') : 'Click, then Ctrl+V');
+    zone.addEventListener('paste', function (e) {
+      var items = (e.clipboardData || {}).items || [];
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image/') === 0) { e.preventDefault(); handle(q, zone, items[i].getAsFile()); return; }
+      }
+      e.preventDefault();
+      setZone(zone, 'That wasn’t a picture. Right-click the image → Copy image.');
+    });
+    zone.addEventListener('dblclick', function () { file.click(); });
+    zone.addEventListener('dragover', function (e) { e.preventDefault(); });
+    zone.addEventListener('drop', function (e) { e.preventDefault(); if (e.dataTransfer.files[0]) handle(q, zone, e.dataTransfer.files[0]); });
+    file.addEventListener('change', function () { if (file.files[0]) handle(q, zone, file.files[0]); });
+    var text = el('td', { class: 'text' }, q.text || '(picture-only question)');
+    if (q.review) text.appendChild(el('div', {}, el('span', { class: 'tag', text: 'Has a REVIEW note' })));
+    return el('tr', {},
+      el('td', { class: 'id', text: q.id }),
+      text,
+      el('td', { class: 'drop' }, zone, el('div', { class: 'small muted', text: 'or double-click to choose a file' }), file));
+  }
+
+  function setZone(zone, message, imgSrc) {
+    zone.innerHTML = '';
+    if (imgSrc) zone.appendChild(el('img', { src: imgSrc, alt: '' }));
+    zone.appendChild(el('span', { class: 'small', text: message }));
+  }
+
+  function handle(q, zone, fileBlob) {
+    if (!fileBlob || fileBlob.type.indexOf('image/') !== 0) { setZone(zone, 'Please use a picture file.'); return; }
+    setZone(zone, 'Saving…');
+    shrink(fileBlob).then(function (dataUrl) {
+      return run('savePastedPicture', q.id, dataUrl).then(function (res) {
+        zone.className = 'paste done';
+        setZone(zone, res.activated ? 'Saved ✓ and switched on' : 'Saved ✓ — review, then tick Active', dataUrl);
+      });
+    }).catch(function (e) { zone.className = 'paste'; setZone(zone, e.message); });
+  }
+
+  /** Keeps pictures a sensible size (max 1000px wide) so pages load fast. */
+  function shrink(blob) {
+    return new Promise(function (ok, bad) {
+      var img = new Image();
+      var url = URL.createObjectURL(blob);
+      img.onload = function () {
+        var scale = Math.min(1, 1000 / img.naturalWidth);
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth * scale);
+        c.height = Math.round(img.naturalHeight * scale);
+        var ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        var png = c.toDataURL('image/png');
+        ok(png.length > 1500000 ? c.toDataURL('image/jpeg', 0.9) : png);
+      };
+      img.onerror = function () { bad(new Error('Could not read that picture.')); };
+      img.src = url;
+    });
+  }
+
+  loadList();
+</script>
+</body>
+</html>

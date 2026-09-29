@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <?!= include_('Styles'); ?>
+</head>
+<body>
+  <header class="top">
+    <div class="brand" id="brand">Math Check-In</div>
+    <div class="who" id="who"></div>
+  </header>
+  <main id="app" aria-live="polite">
+    <div class="spinner" role="status" aria-label="Loading"></div>
+  </main>
+  <?!= include_('AppCommon'); ?>
+  <?!= include_('AppStudent'); ?>
+  <?!= include_('AppStaff'); ?>
+  <script>boot();</script>
+</body>
+</html>

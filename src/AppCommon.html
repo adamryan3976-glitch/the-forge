@@ -1,0 +1,86 @@
+<script>
+/* AppCommon — shared helpers. All text is inserted with textContent (never innerHTML)
+   so nothing typed into the Sheet can run as code in a student's browser. */
+
+var BOOT = null;
+var $app = document.getElementById('app');
+
+function h(tag, attrs) {
+  var el = document.createElement(tag);
+  attrs = attrs || {};
+  Object.keys(attrs).forEach(function (k) {
+    var v = attrs[k];
+    if (v === null || v === undefined || v === false) return;
+    if (k === 'class') el.className = v;
+    else if (k === 'text') el.textContent = v;
+    else if (k.indexOf('on') === 0) el.addEventListener(k.slice(2), v);
+    else if (k === 'style' && typeof v === 'object') Object.keys(v).forEach(function (s) { el.style[s] = v[s]; });
+    else el.setAttribute(k, v === true ? '' : v);
+  });
+  for (var i = 2; i < arguments.length; i++) append(el, arguments[i]);
+  return el;
+}
+
+function append(el, child) {
+  if (child === null || child === undefined || child === false) return;
+  if (Array.isArray(child)) { child.forEach(function (c) { append(el, c); }); return; }
+  el.appendChild(child.nodeType ? child : document.createTextNode(String(child)));
+}
+
+function mount(node) {
+  $app.innerHTML = '';
+  append($app, node);
+  window.scrollTo(0, 0);
+}
+
+function spinner() { return h('div', { class: 'spinner', role: 'status', 'aria-label': 'Loading' }); }
+
+/** Promise wrapper around google.script.run */
+function api(fn) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  return new Promise(function (resolve, reject) {
+    var runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(function (err) {
+      reject(new Error(cleanError(err)));
+    });
+    runner[fn].apply(runner, args);
+  });
+}
+
+function cleanError(err) {
+  var m = (err && err.message) ? err.message : String(err);
+  return m.replace(/^Exception:\s*/, '').replace(/^Error:\s*/, '');
+}
+
+function errorBox(msg) { return h('div', { class: 'error', role: 'alert', text: msg }); }
+
+function messageCard(emoji, title, body) {
+  return h('div', { class: 'card center' },
+    h('div', { class: 'celebrate', 'aria-hidden': 'true', text: emoji }),
+    h('h1', { text: title }),
+    body ? h('p', { class: 'muted', text: body }) : null);
+}
+
+function fmtPct(p) { return p === null || p === undefined ? '—' : p + '%'; }
+
+function flagLabel(f) {
+  return f === 'strength' ? 'Strength' : f === 'gap' ? 'Gap' : f === 'developing' ? 'Developing' : '';
+}
+
+function boot() {
+  api('getBootstrap').then(function (b) {
+    BOOT = b;
+    document.getElementById('brand').textContent = (b.school || '') + ' · Math Check-In';
+    document.getElementById('who').textContent = b.email || '';
+    if (b.role === 'staff') return StaffApp.start();
+    if (b.role === 'student') return StudentApp.start();
+    if (b.role === 'unlisted') {
+      return mount(messageCard('👋', 'Almost there!',
+        'Your account (' + b.email + ') is not on a class list yet. Please ask your teacher to add you.'));
+    }
+    mount(messageCard('🔒', 'Please sign in',
+      'Open this page while signed in to your school Google account.'));
+  }).catch(function (e) {
+    mount(h('div', { class: 'card' }, h('h1', { text: 'Something went wrong' }), errorBox(e.message)));
+  });
+}
+</script>

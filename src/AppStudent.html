@@ -1,0 +1,140 @@
+<script>
+/* AppStudent — one question per screen, big buttons, read-aloud, resume support. */
+
+var StudentApp = (function () {
+  var S = { questions: [], answers: {}, idx: 0 };
+
+  function start() {
+    var b = BOOT;
+    if (b.status === 'done') {
+      return mount(messageCard('🎉', 'All done, ' + b.name + '!', 'You have already finished this math check-in. Great work!'));
+    }
+    if (b.status === 'closed') {
+      return mount(messageCard('⏸️', 'Not open right now', 'The math check-in is closed. Your teacher will let you know when it opens.'));
+    }
+    var resuming = b.status === 'inProgress';
+    mount(h('div', { class: 'card center' },
+      h('div', { class: 'celebrate', 'aria-hidden': 'true', text: '🧮' }),
+      h('h1', { text: 'Hi ' + b.name + '!' }),
+      h('p', { text: resuming ? 'Welcome back! Your answers were saved. Let’s keep going.'
+                              : 'This is your Grade ' + b.grade + ' math check-in. It helps your teacher see what you already know and what to work on next.' }),
+      resuming ? null : h('p', { class: 'muted', text: 'Take your time. Try your best on each question. If you are not sure, make your best guess. You can go back and change answers before you finish.' }),
+      h('button', { class: 'primary big', onclick: begin, text: resuming ? 'Keep going' : 'Start' })));
+  }
+
+  function begin() {
+    mount(spinner());
+    api('startAssessment').then(function (res) {
+      S.questions = res.questions;
+      S.answers = res.answers || {};
+      var firstOpen = S.questions.findIndex(function (q) { return !S.answers[q.id]; });
+      S.idx = firstOpen < 0 ? S.questions.length - 1 : firstOpen;
+      document.addEventListener('keydown', onKey);
+      showQuestion();
+    }).catch(function (e) { mount(h('div', { class: 'card' }, errorBox(e.message))); });
+  }
+
+  function answeredCount() {
+    return S.questions.filter(function (q) { return S.answers[q.id]; }).length;
+  }
+
+  function showQuestion() {
+    stopSpeaking();
+    var q = S.questions[S.idx];
+    var total = S.questions.length;
+    var optButtons = q.options.map(function (o) {
+      return h('button', {
+        class: 'option', 'aria-pressed': S.answers[q.id] === o.key ? 'true' : 'false',
+        onclick: function () { choose(q.id, o.key); }
+      }, h('span', { class: 'letter', text: o.key }), h('span', { text: o.text }));
+    });
+    mount(h('div', { class: 'card' },
+      h('div', { class: 'row' },
+        h('span', { class: 'qnum', text: 'Question ' + (S.idx + 1) + ' of ' + total }),
+        h('span', { class: 'spacer' }),
+        'speechSynthesis' in window ? h('button', { onclick: function () { speak(q); }, 'aria-label': 'Read the question out loud', text: '🔊 Read to me' }) : null),
+      h('div', { class: 'progress', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': total, 'aria-valuenow': answeredCount() },
+        h('div', { style: { width: Math.round(answeredCount() / total * 100) + '%' } })),
+      h('div', { class: 'qtext', text: q.text }),
+      q.image ? h('img', { class: 'qimg', src: q.image, alt: 'Picture for this question', referrerpolicy: 'no-referrer' }) : null,
+      h('div', { class: 'options', role: 'group', 'aria-label': 'Answer choices' }, optButtons),
+      h('div', { class: 'navrow' },
+        h('button', { onclick: prev, disabled: S.idx === 0, text: '← Back' }),
+        h('span', { class: 'spacer' }),
+        S.idx < total - 1
+          ? h('button', { class: 'primary', onclick: next, text: 'Next →' })
+          : h('button', { class: 'primary', onclick: review, text: 'Check my answers →' }))));
+  }
+
+  function choose(id, key) {
+    S.answers[id] = key;
+    showQuestion();
+    api('saveAnswer', id, key).catch(function () { /* answers are also sent on submit */ });
+  }
+
+  function next() { if (S.idx < S.questions.length - 1) { S.idx++; showQuestion(); } }
+  function prev() { if (S.idx > 0) { S.idx--; showQuestion(); } }
+
+  function onKey(e) {
+    if (!document.querySelector('.option')) return;
+    var k = e.key.toUpperCase();
+    var q = S.questions[S.idx];
+    if (['A', 'B', 'C', 'D'].indexOf(k) >= 0 && q.options.some(function (o) { return o.key === k; })) choose(q.id, k);
+    else if (e.key === 'ArrowRight') next();
+    else if (e.key === 'ArrowLeft') prev();
+  }
+
+  function review() {
+    stopSpeaking();
+    var missing = S.questions.filter(function (q) { return !S.answers[q.id]; }).length;
+    var dots = S.questions.map(function (q, i) {
+      return h('button', {
+        class: 'dot ' + (S.answers[q.id] ? 'answered' : 'missing'),
+        'aria-label': 'Question ' + (i + 1) + (S.answers[q.id] ? ', answered' : ', not answered'),
+        onclick: function () { S.idx = i; showQuestion(); }, text: String(i + 1)
+      });
+    });
+    mount(h('div', { class: 'card' },
+      h('h1', { text: 'Check your answers' }),
+      missing
+        ? h('p', { text: 'You have ' + missing + ' question' + (missing === 1 ? '' : 's') + ' without an answer (shown in yellow). Tap a number to go back to it.' })
+        : h('p', { text: 'You answered every question. Tap a number if you want to look at one again.' }),
+      h('div', { class: 'dots' }, dots),
+      h('div', { class: 'navrow' },
+        h('button', { onclick: function () { S.idx = S.questions.length - 1; showQuestion(); }, text: '← Back' }),
+        h('span', { class: 'spacer' }),
+        h('button', { class: 'primary big', onclick: function () { submit(missing); }, text: 'I’m finished' }))));
+  }
+
+  function submit(missing) {
+    if (missing && !confirm('You still have ' + missing + ' question(s) without an answer. Finish anyway?')) return;
+    document.removeEventListener('keydown', onKey);
+    mount(h('div', { class: 'card center' }, spinner(), h('p', { text: 'Saving your answers…' })));
+    api('submitAssessment', S.answers).then(function (res) {
+      mount(messageCard('🎉', 'You did it, ' + BOOT.name + '!',
+        (res.total ? 'You got ' + res.score + ' out of ' + res.total + '. ' : '') + 'Thank you for trying your best. You can close this page now.'));
+    }).catch(function (e) {
+      document.addEventListener('keydown', onKey);
+      mount(h('div', { class: 'card' },
+        errorBox('Your answers were not sent: ' + e.message),
+        h('p', { text: 'Your answers are still here. Check your internet and try again.' }),
+        h('button', { class: 'primary', onclick: function () { submit(0); }, text: 'Try again' })));
+    });
+  }
+
+  function speak(q) {
+    stopSpeaking();
+    var text = q.text + '. ' + q.options.map(function (o) { return o.key + '. ' + o.text; }).join('. ');
+    var u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.9;
+    u.lang = 'en-CA';
+    window.speechSynthesis.speak(u);
+  }
+
+  function stopSpeaking() {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  }
+
+  return { start: start };
+})();
+</script>

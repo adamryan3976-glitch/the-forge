@@ -1,0 +1,346 @@
+<script>
+/* AppStaff — reports dashboard and class lists. */
+
+var StaffApp = (function () {
+  var F = { window: '', grade: 'all', className: 'all' };
+  var tab = 'reports';
+  var last = null;
+
+  function start() { render(); }
+
+  function render() {
+    var tabs = h('div', { class: 'tabs no-print', role: 'tablist' },
+      tabButton('reports', '📊 Reports'), tabButton('rosters', '👥 Class lists'));
+    var body = h('div', {}, spinner());
+    mount([tabs, body]);
+    if (tab === 'reports') loadReport(body); else loadRosters(body);
+  }
+
+  function tabButton(id, label) {
+    return h('button', { role: 'tab', 'aria-selected': tab === id ? 'true' : 'false',
+      onclick: function () { tab = id; render(); }, text: label });
+  }
+
+  /* ======================= Reports ======================= */
+
+  function loadReport(body) {
+    body.innerHTML = '';
+    append(body, spinner());
+    api('getReport', F).then(function (r) {
+      last = r;
+      F.window = r.filters.window;
+      body.innerHTML = '';
+      append(body, reportView(r));
+    }).catch(function (e) { body.innerHTML = ''; append(body, errorBox(e.message)); });
+  }
+
+  function select(label, value, options, onchange) {
+    var s = h('select', { onchange: function () { onchange(s.value); } });
+    options.forEach(function (o) {
+      var opt = h('option', { value: o.value, text: o.label });
+      if (o.value === value) opt.selected = true;
+      s.appendChild(opt);
+    });
+    return h('label', { class: 'field' }, label, s);
+  }
+
+  function reportView(r) {
+    var body = document.querySelector('main > div:last-child');
+    var reload = function () { loadReport(body); };
+    var classes = r.options.classes.filter(function (c) { return F.grade === 'all' || c.grades.indexOf(F.grade) >= 0; });
+    var scope = r.filters.className !== 'all' ? r.filters.className
+              : r.filters.grade !== 'all' ? 'Grade ' + r.filters.grade : 'Whole school';
+
+    var filters = h('div', { class: 'card no-print' },
+      h('div', { class: 'row' },
+        select('Assessment window', F.window, r.options.windows.map(function (w) { return { value: w, label: w }; }),
+          function (v) { F.window = v; reload(); }),
+        select('Grade', F.grade, [{ value: 'all', label: 'All grades' }].concat(
+          r.options.grades.map(function (g) { return { value: g, label: g === 'K' ? 'Kindergarten' : 'Grade ' + g }; })),
+          function (v) { F.grade = v; F.className = 'all'; reload(); }),
+        select('Class', F.className, [{ value: 'all', label: 'All classes' }].concat(
+          classes.map(function (c) { return { value: c.name, label: c.name }; })),
+          function (v) { F.className = v; reload(); }),
+        h('span', { class: 'spacer' }),
+        h('button', { onclick: doExport, text: '⬇ Export to Google Sheet' }),
+        h('button', { onclick: function () { window.print(); }, text: '🖨 Print / PDF' })),
+      h('div', { id: 'exportMsg' }));
+
+    var s = r.summary;
+    var stats = h('div', { class: 'stats' },
+      stat('Completed', s.completed + ' / ' + s.rostered),
+      stat('Average score', fmtPct(s.average)),
+      stat('Strengths', r.strengths.join(', ') || '—'),
+      stat('Gaps', r.gaps.join(', ') || '—'));
+
+    if (!s.completed) {
+      return [filters, h('div', { class: 'card' }, h('h2', { text: scope + ' · ' + r.window }),
+        h('p', { class: 'muted', text: 'No completed check-ins for this selection yet.' })),
+        notCompletedCard(r)];
+    }
+
+    return [
+      filters,
+      h('h2', { text: scope + ' · ' + r.window }),
+      stats,
+      h('div', { class: 'card' },
+        h('h2', { text: 'Strands' }),
+        h('p', { class: 'legend', text: 'Bars show % of answers correct. Lines mark the gap (' + r.thresholds.gap + '%) and strength (' + r.thresholds.strength + '%) cut-offs.' }),
+        strandBars(r.strands, r.thresholds)),
+      h('div', { class: 'card' },
+        h('h2', { text: 'Score spread' }),
+        h('div', { class: 'bars' }, s.bands.map(function (b) {
+          var w = s.completed ? Math.round(b.count / s.completed * 100) : 0;
+          return h('div', { class: 'bar' }, h('span', { text: b.label }),
+            h('div', { class: 'track' }, h('div', { class: 'fill developing', style: { width: w + '%', background: 'var(--brand)' } })),
+            h('span', { class: 'num', text: b.count + ' student' + (b.count === 1 ? '' : 's') }));
+        }))),
+      r.groups.length ? groupsCard(r) : null,
+      r.trend.length > 1 ? trendCard(r) : null,
+      itemsCard(r),
+      studentsCard(r),
+      notCompletedCard(r)
+    ];
+  }
+
+  function stat(label, value) {
+    return h('div', { class: 'stat' }, h('div', { class: 'label', text: label }),
+      h('div', { class: 'value' + (String(value).length > 10 ? ' small' : ''), text: value }));
+  }
+
+  function pill(flag, text) {
+    return flag ? h('span', { class: 'pill ' + flag, text: text || flagLabel(flag) }) : text || '';
+  }
+
+  function strandBars(strands, t) {
+    return h('div', { class: 'bars' }, strands.map(function (st) {
+      return h('div', { class: 'bar' },
+        h('span', { text: st.strand }),
+        h('div', { class: 'track', title: st.correct + ' of ' + st.total + ' answers correct' },
+          h('div', { class: 'fill ' + st.flag, style: { width: (st.percent || 0) + '%' } }),
+          h('div', { class: 'mark', style: { left: t.gap + '%' } }),
+          h('div', { class: 'mark', style: { left: t.strength + '%' } })),
+        h('span', {}, fmtPct(st.percent) + ' ', pill(st.flag)));
+    }));
+  }
+
+  function strandCells(list, names) {
+    return names.map(function (n) {
+      var hit = list.filter(function (x) { return x.strand === n; })[0];
+      return h('td', { class: 'num' }, hit ? pill(hit.flag, fmtPct(hit.percent)) : '—');
+    });
+  }
+
+  function strandNames(lists) {
+    var seen = {};
+    lists.forEach(function (l) { l.forEach(function (s) { seen[s.strand] = true; }); });
+    return Object.keys(seen);
+  }
+
+  function table(headers, rows) {
+    return h('div', { class: 'tablewrap' }, h('table', {},
+      h('thead', {}, h('tr', {}, headers.map(function (x) {
+        return h('th', { class: x.num ? 'num' : '', text: x.label || x });
+      }))),
+      h('tbody', {}, rows)));
+  }
+
+  function groupsCard(r) {
+    var names = strandNames(r.groups.map(function (g) { return g.strands; }));
+    return h('div', { class: 'card' },
+      h('h2', { text: r.groupBy === 'grade' ? 'By grade' : 'By class' }),
+      table([r.groupBy === 'grade' ? 'Grade' : 'Class', { label: 'Students', num: 1 }, { label: 'Average', num: 1 }]
+        .concat(names.map(function (n) { return { label: n, num: 1 }; })),
+        r.groups.map(function (g) {
+          return h('tr', {}, h('td', { text: g.name }), h('td', { class: 'num', text: g.students }),
+            h('td', { class: 'num', text: fmtPct(g.average) }), strandCells(g.strands, names));
+        })));
+  }
+
+  function trendCard(r) {
+    var names = strandNames(r.trend.map(function (t) { return t.strands; }));
+    return h('div', { class: 'card' },
+      h('h2', { text: 'Trends over time' }),
+      h('p', { class: 'legend', text: 'Same grade/class filter, across every assessment window.' }),
+      table(['Window', { label: 'Students', num: 1 }, { label: 'Average', num: 1 }]
+        .concat(names.map(function (n) { return { label: n, num: 1 }; })),
+        r.trend.map(function (t) {
+          return h('tr', {}, h('td', { text: t.window }), h('td', { class: 'num', text: t.students }),
+            h('td', { class: 'num', text: fmtPct(t.average) }), strandCells(t.strands, names));
+        })));
+  }
+
+  function levelBar(levels, n) {
+    return h('div', { class: 'lvlbar', role: 'img',
+      'aria-label': levels.map(function (l) { return l.label + ' ' + l.count; }).join(', ') },
+      levels.map(function (l) {
+        return l.count ? h('span', { class: 'lvl ' + l.colour, style: { width: (l.count / n * 100) + '%' },
+          title: l.label + ': ' + l.count }) : null;
+      }));
+  }
+
+  function levelLegend() {
+    return h('p', { class: 'legend' }, 'Answer colours: ',
+      [['green', 'Correct'], ['yellow', 'Less correct'], ['orange', 'Pretty wrong'], ['red', 'Wrongest']].map(function (x) {
+        return [h('span', { class: 'swatch ' + x[0] }), ' ' + x[1] + '  '];
+      }));
+  }
+
+  function itemsCard(r) {
+    return h('div', { class: 'card' },
+      h('details', { open: r.filters.grade !== 'all' },
+        h('summary', { text: 'Question analysis (' + r.items.length + ' questions, hardest first)' }),
+        levelLegend(),
+        h('p', { class: 'legend', text: 'Select a question to see which students chose each answer.' }),
+        table(['ID', 'Strand', 'Question', { label: '% correct', num: 1 }, 'How students answered', 'Most common wrong answer'],
+          r.items.map(function (it) {
+            return h('tr', { class: 'clickable', tabindex: 0, role: 'button', 'aria-label': 'Show details for ' + it.id,
+                onclick: function () { showQuestion(it.id); },
+                onkeydown: function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showQuestion(it.id); } } },
+              h('td', { text: it.id }), h('td', { text: it.strand + (it.expectation ? ' (' + it.expectation + ')' : '') }),
+              h('td', { text: it.question }), h('td', { class: 'num' }, pill(it.flag, fmtPct(it.percent))),
+              h('td', { style: { minWidth: '140px' } }, levelBar(it.levels, it.students)),
+              h('td', { text: it.commonWrong ? it.commonWrong.choice + ': ' + it.commonWrong.text + ' (' + it.commonWrong.count + ')' : '—' }));
+          }))));
+  }
+
+  function showQuestion(id) {
+    var dlg = h('dialog', { class: 'qdetail', 'aria-label': 'Question ' + id });
+    var close = function () { dlg.close(); dlg.remove(); };
+    dlg.addEventListener('cancel', close);
+    append(dlg, spinner());
+    document.body.appendChild(dlg);
+    dlg.showModal();
+    api('getQuestionDetail', F, id).then(function (d) {
+      dlg.innerHTML = '';
+      append(dlg, [
+        h('div', { class: 'row' }, h('h2', { text: d.id + ' · Grade ' + d.grade + ' · ' + d.strand }), h('span', { class: 'spacer' }),
+          h('button', { onclick: close, 'aria-label': 'Close', text: '✕' })),
+        h('p', { class: 'qtext small', text: d.question }),
+        d.image ? h('img', { class: 'qimg', src: d.image, alt: 'Question picture' }) : null,
+        h('p', { class: 'muted', text: d.total + ' student' + (d.total === 1 ? '' : 's') + ' answered · ' + d.window }),
+        d.options.map(function (o) {
+          var colour = o.level === null ? 'grey' : ['green', 'yellow', 'orange', 'red'][o.level];
+          return h('div', { class: 'optdetail ' + colour },
+            h('div', { class: 'row' },
+              h('strong', { text: o.key + '. ' + o.text }), h('span', { class: 'spacer' }),
+              h('span', { class: 'muted', text: (o.levelLabel ? o.levelLabel + ' · ' : '') + o.students.length + ' (' + fmtPct(o.percent) + ')' })),
+            o.students.length ? h('div', { class: 'names', text: o.students.map(function (s) {
+              return s.name + (F.className === 'all' ? ' (' + s.className + ')' : '');
+            }).join(', ') }) : null);
+        }),
+        d.blank.length ? h('div', { class: 'optdetail grey' }, h('strong', { text: 'No answer · ' + d.blank.length }),
+          h('div', { class: 'names', text: d.blank.map(function (s) { return s.name; }).join(', ') })) : null
+      ]);
+    }).catch(function (e) { dlg.innerHTML = ''; append(dlg, [errorBox(e.message), h('button', { onclick: close, text: 'Close' })]); });
+  }
+
+  function studentsCard(r) {
+    return h('div', { class: 'card' },
+      h('details', { open: r.filters.className !== 'all' },
+        h('summary', { text: 'Students (' + r.students.length + ')' }),
+        h('p', { class: 'legend', text: '"Close calls" = wrong answers that were the nearest choice (yellow). Many close calls usually means careless slips; far-off answers point to a missing concept.' }),
+        table(['Student', 'Class', { label: 'Score', num: 1 }, { label: 'Close calls', num: 1 }, { label: 'Far off', num: 1 }, 'Strengths', 'Gaps'],
+          r.students.map(function (s) {
+            return h('tr', {},
+              h('td', { text: s.name }), h('td', { text: s.className + ' (Gr ' + s.grade + ')' }),
+              h('td', { class: 'num', text: s.score + '/' + s.total + ' · ' + fmtPct(s.percent) }),
+              h('td', { class: 'num', text: s.close }), h('td', { class: 'num', text: s.farOff }),
+              h('td', {}, s.strengths.map(function (x) { return [pill('strength', x), ' ']; })),
+              h('td', {}, s.gaps.map(function (x) { return [pill('gap', x), ' ']; })));
+          }))));
+  }
+
+  function notCompletedCard(r) {
+    if (!r.notCompleted.length) return null;
+    return h('div', { class: 'card' },
+      h('details', {},
+        h('summary', { text: 'Not completed yet (' + r.notCompleted.length + ')' }),
+        table(['Student', 'Class', 'Grade'], r.notCompleted.map(function (s) {
+          return h('tr', {}, h('td', { text: s.name }), h('td', { text: s.className }), h('td', { text: s.grade }));
+        }))));
+  }
+
+  function doExport() {
+    var box = document.getElementById('exportMsg');
+    box.innerHTML = '';
+    append(box, h('p', { class: 'muted', text: 'Creating your Google Sheet…' }));
+    api('exportReport', F).then(function (res) {
+      box.innerHTML = '';
+      append(box, h('div', { class: 'ok' }, 'Report ready: ',
+        h('a', { href: res.url, target: '_blank', rel: 'noopener', text: res.title })));
+    }).catch(function (e) { box.innerHTML = ''; append(box, errorBox(e.message)); });
+  }
+
+  /* ======================= Class lists ======================= */
+
+  function loadRosters(body) {
+    api('getRosters').then(function (data) {
+      body.innerHTML = '';
+      append(body, rosterView(data, body));
+    }).catch(function (e) { body.innerHTML = ''; append(body, errorBox(e.message)); });
+  }
+
+  function rosterView(data, body) {
+    var nameIn = h('input', { type: 'text', placeholder: 'e.g. Room 12 - Ms. Lee', maxlength: 60 });
+    var gradeSel = h('select', {}, [''].concat(['K', '1', '2', '3', '4', '5', '6', '7', '8']).map(function (g) {
+      return h('option', { value: g, text: g ? (g === 'K' ? 'Kindergarten' : 'Grade ' + g) : 'Mixed (grade on each line)' });
+    }));
+    var lines = h('textarea', { placeholder: 'One student per line:\nemail, name, grade (grade optional)\n\ns123456@' +
+      (data.studentDomains[0] || 'school.ca') + ', Jordan Smith, 4\ns654321@' + (data.studentDomains[0] || 'school.ca') + ', Priya Patel' });
+    var msg = h('div', {});
+
+    function save() {
+      msg.innerHTML = '';
+      api('saveRoster', { className: nameIn.value, defaultGrade: gradeSel.value, lines: lines.value }).then(function (res) {
+        if (!res.saved) { append(msg, errorBox(res.errors.join('\n'))); return; }
+        loadRosters(body);
+      }).catch(function (e) { append(msg, errorBox(e.message)); });
+    }
+
+    function edit(c) {
+      nameIn.value = c.className;
+      var grades = {};
+      c.students.forEach(function (s) { grades[s.grade] = true; });
+      var single = Object.keys(grades).length === 1 ? Object.keys(grades)[0] : '';
+      gradeSel.value = single;
+      lines.value = c.students.map(function (s) { return s.email + ', ' + s.name + (single ? '' : ', ' + s.grade); }).join('\n');
+      nameIn.focus();
+    }
+
+    function remove(c) {
+      if (!confirm('Delete the class list "' + c.className + '"? Past results are kept.')) return;
+      api('deleteClass', c.className).then(function () { loadRosters(body); })
+        .catch(function (e) { append(msg, errorBox(e.message)); });
+    }
+
+    var form = h('div', { class: 'card' },
+      h('h2', { text: 'Add or update a class list' }),
+      h('p', { class: 'muted', text: 'Paste from a spreadsheet or type one student per line. Saving a class name that already exists replaces that list. Split classes are fine: put each student’s grade on their line.' }),
+      h('div', { class: 'row' },
+        h('label', { class: 'field', style: { flex: '1' } }, 'Class name', nameIn),
+        h('label', { class: 'field' }, 'Grade', gradeSel)),
+      h('label', { class: 'field', style: { marginTop: '10px' } }, 'Students', lines),
+      msg,
+      h('div', { class: 'navrow' }, h('span', { class: 'spacer' }),
+        h('button', { class: 'primary', onclick: save, text: 'Save class list' })));
+
+    var list = h('div', { class: 'card' },
+      h('h2', { text: data.isAdmin ? 'All class lists' : 'My class lists' }),
+      data.classes.length ? data.classes.map(function (c) {
+        return h('details', {},
+          h('summary', { text: c.className + ' — ' + c.students.length + ' students' + (data.isAdmin ? ' (' + c.teacherEmail + ')' : '') }),
+          table(['Student', 'Email', 'Grade'], c.students.map(function (s) {
+            return h('tr', {}, h('td', { text: s.name }), h('td', { text: s.email }), h('td', { text: s.grade }));
+          })),
+          h('div', { class: 'navrow' },
+            h('button', { onclick: function () { edit(c); }, text: 'Edit' }),
+            h('button', { onclick: function () { remove(c); }, text: 'Delete' })));
+      }) : h('p', { class: 'muted', text: 'No class lists yet.' }));
+
+    return [form, list];
+  }
+
+  return { start: start };
+})();
+</script>
