@@ -87,7 +87,7 @@ export default function Reports({ classes, cfg, me, initialClassId }) {
         </div>
       </Card>
 
-      <h1 className="text-2xl font-semibold text-stone-800">{scopeName} · {report.window}</h1>
+      <h1 className="font-display text-2xl font-bold text-stone-800 tracking-wide">{scopeName} · {report.window}</h1>
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <Stat label="Finished" value={`${s.completed} / ${s.rostered}`} />
@@ -98,7 +98,7 @@ export default function Reports({ classes, cfg, me, initialClassId }) {
 
       {s.completed === 0 ? <Card><p className="text-sm text-stone-500">No finished check-ins for this selection yet.</p></Card> : (<>
         <Card>
-          <h2 className="font-semibold text-stone-800">Strands</h2>
+          <h2 className="font-display font-bold tracking-wide text-stone-800">Strands</h2>
           <p className="text-xs text-stone-500 mb-3">Bars show % of answers correct. The lines mark the gap ({report.thresholds.gap}%) and strength ({report.thresholds.strength}%) cut-offs.</p>
           <div className="space-y-2.5">
             {report.strands.map((st) => (
@@ -116,7 +116,7 @@ export default function Reports({ classes, cfg, me, initialClassId }) {
         </Card>
 
         <Card>
-          <h2 className="font-semibold text-stone-800 mb-3">Score spread</h2>
+          <h2 className="font-display font-bold tracking-wide text-stone-800 mb-3">Score spread</h2>
           <div className="space-y-2">
             {s.bands.map((b) => (
               <div key={b.label} className="grid grid-cols-[120px_1fr_100px] items-center gap-3 text-sm">
@@ -129,13 +129,13 @@ export default function Reports({ classes, cfg, me, initialClassId }) {
         </Card>
 
         {report.groups.length > 0 && (
-          <Card><h2 className="font-semibold text-stone-800 mb-2">{report.groupBy === 'grade' ? 'By grade' : 'By class'}</h2>
+          <Card><h2 className="font-display font-bold tracking-wide text-stone-800 mb-2">{report.groupBy === 'grade' ? 'By grade' : 'By class'}</h2>
             <StrandTable rows={report.groups.map((g) => ({ key: g.name, label: g.name, n: g.students, avg: g.average, strands: g.strands }))} first={report.groupBy === 'grade' ? 'Grade' : 'Class'} />
           </Card>
         )}
 
         {report.trend.length > 1 && (
-          <Card><h2 className="font-semibold text-stone-800">Trends over time</h2>
+          <Card><h2 className="font-display font-bold tracking-wide text-stone-800">Trends over time</h2>
             <p className="text-xs text-stone-500 mb-2">The same students, across every check-in (including past school years).</p>
             <StrandTable rows={report.trend.map((t) => ({ key: t.window, label: t.window, n: t.students, avg: t.average, strands: t.strands }))} first="Check-in" />
           </Card>

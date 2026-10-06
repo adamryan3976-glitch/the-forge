@@ -1,18 +1,18 @@
 export default function SignInScreen({ onSignIn, error, schoolName = 'Winchester P.S.' }) {
   return (
-    <div className="min-h-screen bg-stone-50 flex items-center justify-center px-4">
+    <div className="min-h-screen forge-bg flex items-center justify-center px-4 py-10">
       <div className="max-w-sm w-full text-center">
-        <img src={import.meta.env.BASE_URL + 'favicon.svg'} alt="" className="w-20 h-20 rounded-2xl mx-auto mb-4 shadow-sm" />
-        <h1 className="text-2xl font-bold text-stone-800 mb-1">Math Check-In</h1>
-        <p className="text-sm text-stone-500 mb-6">{schoolName} · Sign in with your school Google account.</p>
+        <img src={import.meta.env.BASE_URL + 'logo.svg'} alt="The Forge — Winchester Knights" className="w-56 mx-auto mb-4 ember-pulse" />
+        <p className="font-display text-gold-300 tracking-[0.2em] text-sm mb-1">MATH CHECK-IN</p>
+        <p className="text-stone-300 mb-7">Where math skills are forged · {schoolName}</p>
         <button
           type="button"
           onClick={onSignIn}
-          className="w-full flex items-center justify-center gap-3 bg-white border border-stone-300 rounded-xl px-4 py-3.5 text-base font-medium text-stone-700 hover:bg-stone-100 shadow-sm"
+          className="w-full flex items-center justify-center gap-3 bg-stone-50 border-2 border-gold-500 rounded-xl px-4 py-3.5 text-base font-semibold text-iron-800 hover:bg-white shadow-lg shadow-black/30"
         >
           <GoogleIcon /> Sign in with Google
         </button>
-        {error && <p className="text-sm text-rose-700 mt-3" role="alert">{error}</p>}
+        {error && <p className="text-sm text-rose-200 bg-rose-900/40 rounded-lg px-3 py-2 mt-3" role="alert">{error}</p>}
         <p className="text-xs text-stone-400 mt-6">Students: use your S-number school account. Teachers: use your @ddsb.ca account.</p>
       </div>
     </div>

@@ -1,1 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#116588"/><path d="M14 26h30c0 6 6 8 10 8v4H40l-2 6h6v6H20v-6h6l-2-6c-6 0-10-5-10-12z" fill="#e0a539"/><text x="32" y="22" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="700" fill="#fff">+×</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="i" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a414b"/><stop offset="1" stop-color="#15181d"/></linearGradient>
+    <linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c3ccd6"/><stop offset="1" stop-color="#4b5560"/></linearGradient>
+    <linearGradient id="h" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff5a1f"/><stop offset="0.5" stop-color="#ffd27a"/><stop offset="1" stop-color="#ff5a1f"/></linearGradient>
+  </defs>
+  <path d="M32 3 L59 10 V30 C59 45 48 56 32 62 C16 56 5 45 5 30 V10 Z" fill="url(#i)" stroke="#d9a441" stroke-width="3" stroke-linejoin="round"/>
+  <text x="19" y="25" font-family="Georgia,serif" font-weight="700" font-size="12" fill="#ffd27a">+</text>
+  <text x="38" y="22" font-family="Georgia,serif" font-weight="700" font-size="12" fill="#ff8a2a">×</text>
+  <rect x="22" y="30" width="20" height="5" rx="2.5" fill="url(#h)"/>
+  <path d="M12 37 C18 38 21 36 24 36 L52 36 L52 40 L46 40 C43 41 42 43 42 46 L42 47 L47 47 L47 51 L19 51 L19 47 L24 47 L24 46 C24 43 22 41 19 40.5 C16 40 14 39 12 37 Z" fill="url(#s)" stroke="#15181d" stroke-width="1.2"/>
+</svg>

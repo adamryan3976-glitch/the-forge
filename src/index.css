@@ -1,34 +1,66 @@
 @import "tailwindcss";
 
-/* Brand palette sampled directly from the FDK Letter Tracker crest --
-   "brand" is the shield/banner teal-blue, "gold" is the shield trim. */
+/* The Forge palette: "brand" is ember (hot metal), "iron" is the forge and
+   anvil, "gold" is the Winchester Knights trim, stone is warmed to parchment. */
 @theme {
-  --color-brand-50: #edf8fd;
-  --color-brand-100: #d2eef9;
-  --color-brand-200: #a4ddf4;
-  --color-brand-300: #60c3eb;
-  --color-brand-400: #1ba2da;
-  --color-brand-500: #147aa3;
-  --color-brand-600: #116588;
-  --color-brand-700: #0e516d;
-  --color-brand-800: #0a3d52;
-  --color-brand-900: #072936;
-  --color-brand-950: #051b24;
+  --color-brand-50: #fdf3ec;
+  --color-brand-100: #fbe1cf;
+  --color-brand-200: #f6bf9a;
+  --color-brand-300: #ef9662;
+  --color-brand-400: #e6703a;
+  --color-brand-500: #cf5521;
+  --color-brand-600: #b2431a;
+  --color-brand-700: #8f3517;
+  --color-brand-800: #6e2914;
+  --color-brand-900: #4d1d0f;
+  --color-brand-950: #2e1108;
+
+  --color-iron-500: #4b5560;
+  --color-iron-600: #3a414b;
+  --color-iron-700: #2a3038;
+  --color-iron-800: #1d2127;
+  --color-iron-900: #14171b;
 
   --color-gold-50: #fcf7ed;
   --color-gold-100: #f7e7ca;
   --color-gold-200: #f0d39e;
   --color-gold-300: #e9bf72;
   --color-gold-400: #e3af4f;
-  --color-gold-500: #e0a539;
+  --color-gold-500: #d9a441;
   --color-gold-600: #cb8f20;
   --color-gold-700: #a8761a;
   --color-gold-800: #845d15;
   --color-gold-900: #61440f;
+
+  /* parchment */
+  --color-stone-50: #f6f1e7;
+  --color-stone-100: #ede5d5;
+
+  --font-display: 'Cinzel', 'Trajan Pro', Georgia, serif;
 }
 
 body {
   font-family: 'Lexend', ui-sans-serif, system-ui, sans-serif;
+  background: #f6f1e7;
+}
+
+/* Forge glow behind the sign-in and header */
+.forge-bg {
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 100%, rgba(226, 83, 29, 0.45), rgba(226, 83, 29, 0) 70%),
+    radial-gradient(ellipse 40% 30% at 50% 100%, rgba(255, 170, 80, 0.35), rgba(255, 170, 80, 0) 70%),
+    linear-gradient(180deg, #2a3038 0%, #14171b 100%);
+}
+.iron-bar {
+  background: linear-gradient(180deg, #2a3038 0%, #1d2127 100%);
+  border-bottom: 3px solid #d9a441;
+}
+/* Progress bar: metal heating up */
+.heat-bar { background: linear-gradient(90deg, #8f3517, #e6703a 60%, #ffd27a); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .ember-pulse { animation: ember 2.4s ease-in-out infinite; }
+  @keyframes ember { 0%, 100% { filter: drop-shadow(0 0 6px rgba(255, 138, 42, 0.35)); } 50% { filter: drop-shadow(0 0 16px rgba(255, 138, 42, 0.7)); } }
 }
 
 /* Answer colours (match the Forge sheet: green / yellow / orange / red) */
