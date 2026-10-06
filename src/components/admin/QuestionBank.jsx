@@ -57,7 +57,7 @@ export default function QuestionBank() {
     <div className="space-y-4">
       <div className="flex items-end gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-800">Questions</h1>
+          <h1 className="font-display text-2xl font-bold text-stone-800 tracking-wide">Questions</h1>
           <p className="text-sm text-stone-500">Edit questions and pictures in the Google Sheet, then import them here.</p>
         </div>
         <div className="flex-1" />
@@ -76,7 +76,7 @@ export default function QuestionBank() {
 
       {importing && (
         <Card className="space-y-3">
-          <h2 className="font-semibold text-stone-800">Ready to import “{importing.filename}”</h2>
+          <h2 className="font-display font-bold tracking-wide text-stone-800">Ready to import “{importing.filename}”</h2>
           <p className="text-sm">{importing.questions.length} questions ({importing.questions.filter((q) => q.active).length} switched on), {importing.questions.reduce((a, q) => a + Object.keys(q.images || {}).length, 0)} pictures.</p>
           <ErrorBox>{importing.problems.length ? importing.problems.slice(0, 20).join('\n') + (importing.problems.length > 20 ? `\n…and ${importing.problems.length - 20} more` : '') : ''}</ErrorBox>
           {progress ? <Spinner label={progress} /> : (

@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 560" role="img" aria-labelledby="t">
+  <title id="t">The Forge — Winchester Knights</title>
+  <defs>
+    <linearGradient id="iron" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a414b"/>
+      <stop offset="1" stop-color="#15181d"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c3ccd6"/>
+      <stop offset="0.45" stop-color="#7d8894"/>
+      <stop offset="1" stop-color="#3b434d"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6d27a"/>
+      <stop offset="0.5" stop-color="#d9a441"/>
+      <stop offset="1" stop-color="#9c6a1c"/>
+    </linearGradient>
+    <linearGradient id="hot" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff5a1f"/>
+      <stop offset="0.5" stop-color="#ffd27a"/>
+      <stop offset="1" stop-color="#ff5a1f"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.62" r="0.5">
+      <stop offset="0" stop-color="#ff9a3c" stop-opacity="0.85"/>
+      <stop offset="0.45" stop-color="#e2531d" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#e2531d" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="wood" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8a5a2b"/>
+      <stop offset="1" stop-color="#4f3216"/>
+    </linearGradient>
+    <clipPath id="shieldClip">
+      <path d="M256 30 L452 78 V238 C452 352 372 438 256 486 C140 438 60 352 60 238 V78 Z"/>
+    </clipPath>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+  </defs>
+
+  <!-- Knight's shield -->
+  <path d="M256 30 L452 78 V238 C452 352 372 438 256 486 C140 438 60 352 60 238 V78 Z" fill="url(#iron)"/>
+  <g clip-path="url(#shieldClip)">
+    <ellipse cx="256" cy="330" rx="230" ry="190" fill="url(#glow)"/>
+    <!-- rivets of the shield's plate -->
+    <g fill="#5b636e">
+      <circle cx="104" cy="104" r="6"/><circle cx="408" cy="104" r="6"/>
+      <circle cx="96" cy="260" r="6"/><circle cx="416" cy="260" r="6"/>
+    </g>
+  </g>
+  <path d="M256 30 L452 78 V238 C452 352 372 438 256 486 C140 438 60 352 60 238 V78 Z" fill="none" stroke="url(#gold)" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M256 52 L432 95 V238 C432 340 360 418 256 462 C152 418 80 340 80 238 V95 Z" fill="none" stroke="#d9a441" stroke-opacity="0.45" stroke-width="3"/>
+
+  <!-- Sparks: math symbols flying off the strike -->
+  <g font-family="Georgia, 'Times New Roman', serif" font-weight="700" text-anchor="middle">
+    <text x="150" y="196" font-size="46" fill="#ffd27a" transform="rotate(-14 150 196)">+</text>
+    <text x="356" y="176" font-size="50" fill="#ffb347" transform="rotate(12 356 176)">×</text>
+    <text x="388" y="250" font-size="36" fill="#ff8a2a">÷</text>
+    <text x="118" y="262" font-size="40" fill="#ff8a2a">−</text>
+    <text x="300" y="140" font-size="28" fill="#ffe3a3">=</text>
+  </g>
+  <g fill="#ffd27a">
+    <circle cx="206" cy="232" r="4"/><circle cx="318" cy="214" r="3.5"/><circle cx="182" cy="208" r="2.5"/>
+    <circle cx="336" cy="244" r="3"/><circle cx="240" cy="196" r="2.5"/><circle cx="276" cy="186" r="2"/>
+  </g>
+
+  <!-- Hammer, mid-strike -->
+  <g transform="rotate(-38 300 250)">
+    <rect x="291" y="128" width="20" height="150" rx="6" fill="url(#wood)"/>
+    <rect x="252" y="92" width="98" height="46" rx="8" fill="url(#steel)" stroke="#20252b" stroke-width="3"/>
+    <rect x="252" y="92" width="16" height="46" rx="4" fill="#d6dde4" opacity="0.6"/>
+  </g>
+
+  <!-- Hot metal being shaped on the anvil -->
+  <rect x="196" y="262" width="122" height="20" rx="10" fill="url(#hot)" filter="url(#soft)" opacity="0.9"/>
+  <rect x="198" y="264" width="118" height="16" rx="8" fill="url(#hot)"/>
+
+  <!-- Anvil -->
+  <path d="M112 292 C150 296 176 286 196 284 L384 284 L384 314 L346 314 C326 318 318 330 316 350 L316 364 L352 364 L352 394 L164 394 L164 364 L200 364 L200 350 C198 330 190 320 172 316 C146 312 126 306 112 292 Z"
+        fill="url(#steel)" stroke="#1b1f24" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M196 288 L380 288" stroke="#e7edf2" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- Banner -->
+  <path d="M40 430 L92 418 L92 470 L40 482 L58 456 Z" fill="#7c1d16"/>
+  <path d="M472 430 L420 418 L420 470 L472 482 L454 456 Z" fill="#7c1d16"/>
+  <path d="M84 410 Q256 380 428 410 L428 466 Q256 436 84 466 Z" fill="#a8261c" stroke="url(#gold)" stroke-width="5"/>
+  <text x="256" y="448" text-anchor="middle" font-family="Cinzel, 'Trajan Pro', Georgia, serif" font-weight="700" font-size="40" letter-spacing="4" fill="#f6e3b4">THE FORGE</text>
+
+  <text x="256" y="535" text-anchor="middle" font-family="Cinzel, 'Trajan Pro', Georgia, serif" font-weight="700" font-size="24" letter-spacing="6" fill="#d9a441">WINCHESTER KNIGHTS</text>
+</svg>

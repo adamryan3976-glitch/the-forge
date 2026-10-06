@@ -154,18 +154,18 @@ export default function StudentApp({ user, studentNumber: sn, onSignOut }) {
   if (phase === 'intro') {
     const resuming = !!ctx.resume;
     return shell(
-      <Big emoji="🧮" title={`Hi ${firstName}!`}>
+      <Big logo title={`Hi ${firstName}!`}>
         <p className="text-lg text-stone-700">{resuming
           ? 'Welcome back! Your answers were saved. Let’s keep going.'
-          : `This is your ${gradeLabel(ctx.enrol.grade)} math check-in. It helps your teacher see what you already know and what to work on next.`}</p>
+          : `Welcome to The Forge! This is your ${gradeLabel(ctx.enrol.grade)} math check-in. It helps your teacher see what you already know and what to work on next.`}</p>
         {!resuming && <p className="mt-2 text-stone-500">Take your time and try your best. If you’re not sure, make your best guess. You can go back and change answers before you finish.</p>}
-        <Button variant="primary" className="mt-6 text-lg px-8 py-3" onClick={begin}>{resuming ? 'Keep going' : 'Start'}</Button>
+        <Button variant="primary" className="mt-6 text-lg px-8 py-3 shadow-md shadow-brand-900/20" onClick={begin}>{resuming ? 'Keep going' : 'Start'}</Button>
       </Big>
     );
   }
   if (phase === 'submitting') return shell(<Big emoji="📨" title="Handing in…">{!online && 'Waiting for the internet to come back. Keep this page open.'}<Spinner label="" /></Big>);
   if (phase === 'done') {
-    return shell(<Big emoji="🎉" title={`You did it, ${firstName}!`}>Thank you for trying your best. You can close this page now.</Big>);
+    return shell(<Big logo title={`Well forged, ${firstName}!`}>You finished your math check-in. Thank you for trying your best! You can close this page now.</Big>);
   }
 
   const { questions } = quiz;
@@ -176,7 +176,7 @@ export default function StudentApp({ user, studentNumber: sn, onSignOut }) {
     const missing = questions.length - answered;
     return shell(
       <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6">
-        <div className="flex items-center justify-between gap-2"><h1 className="text-2xl font-semibold text-stone-800">Check your answers</h1>{status}</div>
+        <div className="flex items-center justify-between gap-2"><h1 className="font-display text-2xl font-bold text-stone-800 tracking-wide">Check your answers</h1>{status}</div>
         <p className="mt-2 text-stone-700">{missing
           ? `You have ${missing} question${missing === 1 ? '' : 's'} without an answer (shown in yellow). Tap a number to go back to it.`
           : 'You answered every question. Tap a number if you want to look at one again.'}</p>
@@ -251,8 +251,8 @@ function QuestionScreen({ q, index, total, answered, images, chosen, onChoose, o
           <Button onClick={speak} aria-label="Read the question out loud"><Volume2 className="w-4 h-4" /> Read to me</Button>
         )}
       </div>
-      <div className="h-3 bg-brand-50 rounded-full overflow-hidden my-4" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={answered}>
-        <div className="h-full bg-brand-500 transition-all" style={{ width: `${(answered / total) * 100}%` }} />
+      <div className="h-3 bg-stone-100 rounded-full overflow-hidden my-4 ring-1 ring-stone-200" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={answered}>
+        <div className="h-full heat-bar transition-all" style={{ width: `${(answered / total) * 100}%` }} />
       </div>
       {q.text && <p className="text-xl sm:text-2xl leading-relaxed text-stone-800 whitespace-pre-line mb-4">{q.text}</p>}
       {q.hasImage && (images.Q
@@ -292,11 +292,13 @@ function SaveStatus({ online, pending }) {
   return <span className="inline-flex items-center gap-1 text-xs text-emerald-700"><Check className="w-4 h-4" /> Saved</span>;
 }
 
-function Big({ emoji, title, children }) {
+function Big({ emoji, logo, title, children }) {
   return (
-    <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center">
-      <div className="text-6xl mb-3" aria-hidden="true">{emoji}</div>
-      <h1 className="text-2xl font-semibold text-stone-800 mb-2">{title}</h1>
+    <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center shadow-sm">
+      {logo
+        ? <img src={import.meta.env.BASE_URL + 'logo.svg'} alt="" className="w-32 mx-auto mb-3 ember-pulse" />
+        : <div className="text-6xl mb-3" aria-hidden="true">{emoji}</div>}
+      <h1 className="font-display text-2xl font-bold text-stone-800 tracking-wide mb-2">{title}</h1>
       <div className="text-stone-600">{children}</div>
     </div>
   );

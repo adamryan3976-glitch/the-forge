@@ -81,7 +81,7 @@ export default function ClassView({ cls, cfg, me, onBack, onChanged, onReport })
       <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-sm text-brand-700 hover:underline"><ArrowLeft className="w-4 h-4" /> All classes</button>
       <div className="flex items-start gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-800 flex items-center gap-2">{cls.name}
+          <h1 className="font-display text-2xl font-bold text-stone-800 tracking-wide flex items-center gap-2">{cls.name}
             {canManage && !cls.archived && <button type="button" onClick={rename} aria-label="Rename class" className="p-1 rounded hover:bg-stone-100"><Pencil className="w-4 h-4 text-stone-400" /></button>}
           </h1>
           <p className="text-sm text-stone-500">{cls.schoolYear} · Teacher: {cls.ownerName || cls.ownerEmail}
@@ -104,7 +104,7 @@ export default function ClassView({ cls, cfg, me, onBack, onChanged, onReport })
 
       <Card className="p-0 overflow-hidden">
         <div className="flex items-center gap-3 px-4 py-3 border-b border-stone-100 flex-wrap">
-          <h2 className="font-semibold text-stone-800">Students {roster && `(${roster.length})`}</h2>
+          <h2 className="font-display font-bold tracking-wide text-stone-800">Students {roster && `(${roster.length})`}</h2>
           {roster && roster.length > 0 && (
             <span className="text-xs text-stone-500">{cfg.currentWindow}: {counts.done} finished · {counts.ip} in progress · {counts.none} not started</span>
           )}

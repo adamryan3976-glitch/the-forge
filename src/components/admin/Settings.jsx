@@ -32,7 +32,7 @@ export default function Settings({ cfg, me, firstRun, onSaved }) {
 
   return (
     <div className="space-y-4 max-w-2xl">
-      <h1 className="text-2xl font-semibold text-stone-800">Settings</h1>
+      <h1 className="font-display text-2xl font-bold text-stone-800 tracking-wide">Settings</h1>
       {firstRun && <OkBox>Welcome! This is the first time the app has been opened. Check these settings and click Save to finish setting it up. Then import your questions on the Questions page.</OkBox>}
       <Card className="space-y-4">
         <Field label="School name"><input className={inputCls} value={c.schoolName} onChange={(e) => set('schoolName', e.target.value)} /></Field>

@@ -14,7 +14,7 @@ export default function ClassList({ classes, me, cfg, onOpen, onCreated }) {
     <div className="space-y-6">
       <div className="flex items-center gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-800">Classes</h1>
+          <h1 className="font-display text-2xl font-bold text-stone-800 tracking-wide">Classes</h1>
           <p className="text-sm text-stone-500">
             Current check-in: <b>{cfg.currentWindow}</b> · {cfg.assessmentOpen ? <Pill kind="strength">Open to students</Pill> : <Pill>Closed</Pill>}
           </p>
