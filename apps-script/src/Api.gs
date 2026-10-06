@@ -72,8 +72,10 @@ function startAssessment() {
     if (prog.order.indexOf(norm_(q.QuestionID)) < 0) list.push(publicQuestion_(q));
   });
   list.forEach(function (pq) {
-    if (pq.driveImageId) pq.image = driveImageData_(pq.driveImageId);
-    delete pq.driveImageId;
+    [pq].concat(pq.options).forEach(function (o) {
+      if (o.driveImageId) o.image = driveImageData_(o.driveImageId);
+      delete o.driveImageId;
+    });
   });
   return { questions: list, answers: prog.answers, grade: st.grade };
 }
@@ -152,6 +154,12 @@ function getQuestionDetail(filters, questionId) {
   var q = readRows_(SHEET.QUESTIONS).filter(function (r) { return norm_(r.QuestionID) === detail.id; })[0];
   var driveId = q ? driveImageId_(q.ImageURL) : '';
   detail.image = driveId ? driveImageData_(driveId) : (q ? safeImageUrl_(q.ImageURL) : '');
+  detail.options.forEach(function (o) {
+    var url = q ? norm_(q['Option' + o.key + 'Image']) : '';
+    var id = driveImageId_(url);
+    o.image = id ? driveImageData_(id) : safeImageUrl_(url);
+    if (o.image && o.text.toUpperCase() === o.key) o.text = '';
+  });
   return detail;
 }
 

@@ -14,6 +14,7 @@ function onOpen() {
     .addItem('1. Set up / repair sheets', 'menuSetup')
     .addItem('2. Check questions for problems', 'menuValidateQuestions')
     .addItem('3. Add question pictures…', 'menuPictures')
+    .addItem('4. Export questions for the web app', 'menuExportForApp')
     .addSeparator()
     .addItem('Delete all data for one assessment window…', 'menuDeleteWindow')
     .addToUi();
@@ -100,7 +101,7 @@ function menuValidateQuestions() {
   rows.forEach(function (q) {
     var where = 'Row ' + q._row + (norm_(q.QuestionID) ? ' (' + q.QuestionID + ')' : '');
     var id = norm_(q.QuestionID);
-    if (seen[id]) problems.push(where + ': duplicate QuestionID');
+    if (id && seen[id]) problems.push(where + ': duplicate QuestionID');
     seen[id] = true;
     if (!gradeKey_(q.Grade)) problems.push(where + ': missing Grade');
     if (!norm_(q.Question) && !norm_(q.ImageURL)) problems.push(where + ': needs question text or an image');
@@ -110,8 +111,10 @@ function menuValidateQuestions() {
     }
     var correct = norm_(q.Correct).toUpperCase();
     if (CHOICES.indexOf(correct) < 0) problems.push(where + ': Correct must be A, B, C or D');
-    else if (!norm_(q['Option' + correct])) problems.push(where + ': the correct option (' + correct + ') is blank');
-    var filled = CHOICES.filter(function (k) { return norm_(q['Option' + k]); }).length;
+    else if (!optionFilled_(q, correct)) problems.push(where + ': the correct option (' + correct + ') is blank');
+    var filled = CHOICES.filter(function (k) { return optionFilled_(q, k); }).length;
+    var missingOpt = missingOptionPictures_(q);
+    if (missingOpt.length && isTrue_(q.Active)) problems.push(where + ': answer pictures still missing for ' + missingOpt.join(', '));
     if (filled < 2) problems.push(where + ': needs at least 2 answer options');
     if (!norm_(q.Strand)) untagged++;
     if (!validQuestion_(q) && isTrue_(q.Active) === false && norm_(q.Active) !== '') inactive++;

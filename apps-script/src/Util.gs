@@ -29,7 +29,7 @@ function readRows_(name) {
     for (var c = 0; c < headers.length; c++) {
       if (!headers[c]) continue;
       obj[headers[c]] = row[c];
-      if (row[c] !== '' && row[c] !== null) empty = false;
+      if (row[c] !== '' && row[c] !== null && row[c] !== false) empty = false; // unticked checkboxes don't count
     }
     if (!empty) { obj._row = r + 1; out.push(obj); }
   }

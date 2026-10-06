@@ -24,20 +24,25 @@ function menuPictures() {
  * Called from PicturesDialog.html
  * ========================================================= */
 
-/** Questions that still need a picture, plus ones that already have one. */
+/**
+ * Every question, with what pictures it has. The dialog lists the ones that use
+ * pictures and lets you add pictures to any other question.
+ */
 function getPictureStatus() {
   requireAdmin_();
-  return readRows_(SHEET.QUESTIONS).filter(function (q) {
-    return needsPictureNote_(q.Notes) || norm_(q.ImageURL);
-  }).map(function (q) {
+  return readRows_(SHEET.QUESTIONS).filter(function (q) { return norm_(q.QuestionID); }).map(function (q) {
+    var pictureAnswers = hasPictureAnswers_(q);
     return {
       id: norm_(q.QuestionID), grade: gradeKey_(q.Grade), text: norm_(q.Question).slice(0, 160),
       hasImage: !!norm_(q.ImageURL), needs: needsPictureNote_(q.Notes), active: isTrue_(q.Active),
-      review: /REVIEW:/.test(norm_(q.Notes))
+      review: /REVIEW:/.test(norm_(q.Notes)),
+      pictureAnswers: pictureAnswers,
+      options: CHOICES.filter(function (k) { return optionFilled_(q, k); }).map(function (k) {
+        return { key: k, text: norm_(q['Option' + k]), hasImage: !!norm_(q['Option' + k + 'Image']) };
+      }),
+      usesPictures: needsPictureNote_(q.Notes) || !!norm_(q.ImageURL) || pictureAnswers
     };
-  }).sort(function (a, b) {
-    return (a.hasImage - b.hasImage) || a.id.localeCompare(b.id, undefined, { numeric: true });
-  });
+  }).sort(function (a, b) { return a.id.localeCompare(b.id, undefined, { numeric: true }); });
 }
 
 /** Import picture blocks and check answer keys from one Google Form. */
@@ -88,15 +93,20 @@ function importFromForm(formUrl) {
   };
 }
 
-/** Saves a picture pasted or chosen in the dialog. dataUrl = "data:image/png;base64,…" */
-function savePastedPicture(questionId, dataUrl) {
+/**
+ * Saves a picture pasted or chosen in the dialog. dataUrl = "data:image/png;base64,…"
+ * slot = '' for the question picture, or 'A'–'D' for an answer picture.
+ */
+function savePastedPicture(questionId, dataUrl, slot) {
   requireAdmin_();
   var m = String(dataUrl || '').match(/^data:(image\/(?:png|jpeg|gif|webp));base64,([A-Za-z0-9+\/=]+)$/);
   if (!m) throw new Error('That doesn’t look like a picture. Copy the image itself, or choose a PNG/JPG file.');
   var bytes = Utilities.base64Decode(m[2]);
   if (bytes.length > MAX_PICTURE_BYTES) throw new Error('That picture is over 5 MB. Try a smaller one.');
   var ext = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/gif': '.gif', 'image/webp': '.webp' }[m[1]];
-  return savePicture_(norm_(questionId), Utilities.newBlob(bytes, m[1], norm_(questionId) + ext));
+  var s = norm_(slot).toUpperCase();
+  if (s && CHOICES.indexOf(s) < 0) throw new Error('Unknown answer slot.');
+  return savePicture_(norm_(questionId), Utilities.newBlob(bytes, m[1], norm_(questionId) + (s ? '-' + s : '') + ext), s);
 }
 
 /* =========================================================
@@ -120,8 +130,10 @@ function picturesFolder_() {
   return folder;
 }
 
-/** Stores the picture in Drive and updates that question's row. */
-function savePicture_(qid, blob) {
+/** Stores the picture in Drive and updates that question's row (slot '' = question, 'A'–'D' = answer). */
+function savePicture_(qid, blob, slot) {
+  slot = slot || '';
+  var field = slot ? 'Option' + slot + 'Image' : 'ImageURL';
   return withLock_(function () {
     var sh = sheet_(SHEET.QUESTIONS);
     var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
@@ -131,21 +143,29 @@ function savePicture_(qid, blob) {
 
     var type = blob.getContentType() || 'image/png';
     var ext = type === 'image/jpeg' ? '.jpg' : type === 'image/gif' ? '.gif' : '.png';
-    var file = picturesFolder_().createFile(blob.setName(qid + ext));
+    var file = picturesFolder_().createFile(blob.setName(qid + (slot ? '-' + slot : '') + ext));
+    if (!col(field)) {
+      sh.getRange(1, sh.getLastColumn() + 1).setValue(field).setFontWeight('bold').setBackground('#e8eef7');
+      headers.push(field);
+    }
 
-    var oldId = driveImageId_(q.ImageURL);
+    var oldId = driveImageId_(q[field]);
     if (oldId) {
       CacheService.getScriptCache().remove('img_' + oldId);
       try { DriveApp.getFileById(oldId).setTrashed(true); } catch (e) { /* not ours or already gone */ }
     }
 
-    q.ImageURL = 'https://drive.google.com/file/d/' + file.getId() + '/view';
-    var notes = removeNeedsPictureNote_(q.Notes);
-    var activate = !/REVIEW:/.test(notes) && validQuestion_(mergeObj_(q, { Active: true }));
-    sh.getRange(q._row, col('ImageURL')).setValue(q.ImageURL);
+    q[field] = 'https://drive.google.com/file/d/' + file.getId() + '/view';
+    var notes = slot ? norm_(q.Notes) : removeNeedsPictureNote_(q.Notes);
+    var missing = missingOptionPictures_(q);
+    var activate = !/REVIEW:/.test(notes) && !needsPictureNote_(notes) && !missing.length &&
+                   validQuestion_(mergeObj_(q, { Active: true }));
+    sh.getRange(q._row, col(field)).setValue(q[field]);
     if (col('Notes')) sh.getRange(q._row, col('Notes')).setValue(notes);
     if (activate && col('Active')) sh.getRange(q._row, col('Active')).setValue(true);
-    return { qid: qid, activated: activate, needsReview: /REVIEW:/.test(notes), url: q.ImageURL };
+    return { qid: qid, slot: slot, activated: activate, needsReview: /REVIEW:/.test(notes),
+             stillNeeds: (needsPictureNote_(notes) ? ['question picture'] : []).concat(missing.map(function (k) { return 'answer ' + k; })),
+             url: q[field] };
   });
 }
 

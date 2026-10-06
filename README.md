@@ -1,167 +1,124 @@
-# Math Check-In
+# The Forge · Math Check-In
 
-A secure, Google-sign-in math assessment for K–8 students, built for Winchester P.S. (DDSB) and designed to be shared with other schools.
+A grade-level math check-in for K–8 students at Winchester P.S. (DDSB), built to be shared with other schools.
 
-- Students sign in with their school Google account and answer multiple-choice questions for their grade, one per screen, with a **Read to me** button.
-- Answers are scored on the server. **The answer key never reaches the student's browser.**
-- Staff see live reports by **school, grade, class and student**: strand strengths and gaps, question analysis colour-coded green → red by how wrong each answer is (click a question to see which students chose each answer), "close calls" vs far-off answers per student, score spread, trends across assessment windows, and who hasn't finished yet.
-- Any report can be **exported to a Google Sheet** or printed / saved as PDF.
-- All student data stays in **one Google Sheet in the school's own Google Workspace**. Nothing is stored in GitHub.
+- **Teachers** sign in with their @ddsb.ca Google account. They create classes, add students one at a time or from a CSV, set each student's **grade**, and share a class with other teachers (*View only* or *Can edit*).
+- **Students** sign in with their `S#########@ddsbstudent.ca` account. The app reads their **student number** from the account, finds their class and grade, and gives them that grade's check-in. **Every answer saves the moment they tap it.** If the Wi-Fi drops or time runs out, they pick up where they left off next time.
+- **Results are stored by student number**, so they follow a student from class to class and year to year.
+- **Reports** for a class, a grade, or the whole school show:
+  - strand strengths and gaps
+  - question analysis, colour-coded green → red by how wrong each answer was (click a question to see who chose what)
+  - "close calls" vs far-off answers for each student
+  - trends across check-ins and school years
+  - who hasn't finished yet
+  - CSV export and print/PDF
+- **Admins** (principal/VP) see every class automatically. They also manage settings and the question bank.
+- **Questions are edited in the Google Sheet** (see `apps-script/`) and imported with one click. Students never receive the answer key.
+
+Same building blocks as the FDK Letter Tracker: React + Vite on **GitHub Pages**, with **Firebase** for Google sign-in and data.
 
 ---
 
-## How it fits together
+## How it's secured
 
-```
-GitHub repo (code only, no data)
-      │  clasp push
-      ▼
-Google Sheet  ──  Apps Script (bound to the Sheet)  ──  Web app URL
-  Questions         scoring, reports, rosters            students + staff
-  Roster / Staff                                         sign in with Google
-  Attempts / Responses
-```
+All access rules live in [`firestore.rules`](firestore.rules). They are enforced on Google's servers, so nothing done in a browser can get around them. [`test/rules/rules.test.js`](test/rules/rules.test.js) checks each rule below, and GitHub runs those checks before every publish.
 
-| Tab | What it holds | Who edits it |
+| Who | Can | Can't |
 |---|---|---|
-| Settings | School name, allowed domains, current window, thresholds | You |
-| Questions | Question, 4 options, correct letter, grade, strand | You |
-| Staff | Staff emails allowed to see reports (`teacher` or `admin`) | You |
-| Roster | Student email, name, grade, class, teacher | Teachers, through the web app |
-| Attempts / Responses | One row per finished check-in / per answer | The app only |
-| Audit Log | Exports, roster changes, deletions | The app only |
+| Student | Read the questions for the check-in. Start and save **their own** attempt for **their own grade and class**. | See the answer key, other students' work, class lists, or their attempt after it's handed in (it's locked). |
+| Teacher | Manage **their** classes. See results for students currently in classes they own or that are shared with them. | See other teachers' classes or students. Take a student who is in another teacher's **active** class. |
+| Admin | Everything above for every class. Settings and questions. | — |
+| Any other Google account | Nothing. | — |
 
-**Share the Sheet itself with as few people as possible** (you, and maybe your principal). Staff don't need access to the Sheet; they use the web app.
+**One active class per student.** To move a student, their current teacher removes them, or archives the class at the end of the year. An admin can also move them.
 
----
-
-## Setup (about 20 minutes)
-
-### 1. Create the Sheet and script
-1. Signed in with your **DDSB** account, create a new Google Sheet, e.g. *Winchester Math Check-In*.
-2. **Extensions → Apps Script**. In the script editor, open **Project Settings** (gear icon):
-   - tick **Show "appsscript.json" manifest file in editor**
-   - copy the **Script ID**
-
-### 2. Put the code in
-**Option A: from GitHub with clasp (recommended)**
-```bash
-npm install -g @google/clasp
-clasp login                        # sign in with your DDSB account
-cp .clasp.json.example .clasp.json # then paste your Script ID into it
-clasp push
-```
-Also turn on the Apps Script API once at <https://script.google.com/home/usersettings>.
-If DDSB blocks `clasp login`, use Option B.
-
-**Option B: copy and paste.** In the script editor, create a file for each file in `src/` with the same name (`.gs` files as Script, `.html` files as HTML) and paste the contents in. Replace the contents of `appsscript.json` too.
-
-### 3. Build the tabs
-Reload the Sheet. A **Math Assessment** menu appears. Choose **1. Set up / repair sheets** and approve the permissions. It creates every tab, adds dropdowns, and adds you as an admin.
-
-### 4. Add questions and staff
-- Click the **Questions** tab, then **File → Import → Upload** your questions CSV and choose **Replace current sheet**. (Or paste rows in; see `sample/questions_template.csv` for the format. Leave `QuestionID` blank and it will be filled in for you.)
-- Run **1. Set up / repair sheets** once more so the dropdowns and checkboxes come back.
-- Run **Math Assessment → 2. Check questions for problems**.
-- **Pictures:** run **Math Assessment → 3. Add question pictures…**
-  1. Paste a Google Form's edit link and click **Import**. Picture blocks in the Form are saved to a private *Math Check-In Pictures* folder in your Drive, linked to the right question, and switched on. It also checks the Form's answer key against the Questions tab and lists any differences.
-  2. Pictures attached *inside* a question can't be read by Apps Script, so they're listed below with a paste box: in the Form, right-click the picture → **Copy image**, click the box, press **Ctrl+V**. (Dropping a file or screenshot works too.)
-
-  You can also paste any Drive share link into `ImageURL` yourself. Either way, pictures stay private: the app reads them from your Drive and sends them inside the page, so they never need to be shared with students.
-- Add every Winchester staff member who should see reports to **Staff** (all staff can see all reports; `admin` can also edit any class list).
-
-### 5. Deploy the web app
-1. In the script editor: **Deploy → New deployment → Web app**.
-2. **Execute as:** Me. **Who has access:** Anyone within Durham District School Board.
-3. Copy the web app URL. This is the link students and staff use (post it in Google Classroom).
-
-### 6. Test sign-in with a student account first
-Open the URL in a browser signed in as a **test student account**:
-- ✅ You see *"Almost there! Your account (…@ddsbstudent.ca) is not on a class list yet"* → sign-in works. Add the account to a class list and try the check-in.
-- ❌ You see *"Please sign in"*, *"You need access"*, or a Google error → student accounts can't reach staff-owned web apps. Ask DDSB IT; there is a fallback sign-in approach we can switch to.
-
-### 7. Teachers add class lists
-Staff open the same URL → **Class lists** → paste `email, name, grade` lines. Split grades are fine.
+**Scoring happens in the teacher's browser.** That's what keeps the answer key away from students, and it's why students don't see a score at the end.
 
 ---
 
-## Question columns
+## One-time setup (about 30 minutes)
 
-| Column | Meaning |
+### 1. Create a Firebase project
+1. Go to [console.firebase.google.com](https://console.firebase.google.com) → **Add project** (e.g. "the-forge"). Analytics can stay off. The free **Spark** plan is plenty.
+2. On the project overview, click the **web** icon (`</>`) to register a web app. Skip Firebase Hosting.
+3. Keep the `firebaseConfig` values it shows. You need them in step 5.
+
+### 2. Turn on Google sign-in
+**Build → Authentication → Get started → Sign-in method → Google → Enable** → choose a support email → **Save**.
+Then **Authentication → Settings → Authorized domains → Add domain** → `adamryan3976-glitch.github.io` (your GitHub Pages address).
+
+### 3. Create the database and paste in the security rules
+1. **Build → Firestore Database → Create database** → **production mode** → region **northamerica-northeast2 (Toronto)** or **northamerica-northeast1 (Montréal)**.
+2. **Rules** tab → replace everything with the contents of [`firestore.rules`](firestore.rules) → **Publish**.
+3. Check the line near the top: `function ownerEmails() { return ['adamryan3976@ddsb.ca']; }`. That account is always an admin. Change it if needed, here **and** in `src/lib/identity.js`.
+
+> Whenever `firestore.rules` changes in this repo, paste it into the console again. GitHub tests the rules but doesn't publish them.
+
+### 4. Turn on GitHub Pages
+Repo **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+### 5. Add your Firebase settings to GitHub
+Repo **Settings → Secrets and variables → Actions → New repository secret**. Add these six, using the values from step 1:
+
+| Secret name | Firebase value |
 |---|---|
-| QuestionID | e.g. `G4-012`. Keep it the same once students have answered; reports use it. |
-| Grade | K or 1–8 |
-| Strand | Number, Algebra, Data, Spatial Sense or Financial Literacy |
-| Expectation | Optional, e.g. `B1.2` |
-| Question | Text shown to students (can be blank if the picture has the question) |
-| ImageURL | Drive share link or any https picture link |
-| OptionA–D | Answer choices |
-| Correct | Letter of the right answer |
-| WrongRank | The wrong letters from closest to furthest, e.g. `C,A,D` = C "less correct" (yellow), A "pretty wrong" (orange), D "wrongest" (red). Powers the colour bars and "close calls". |
-| Active | Untick to hide a question without deleting it |
-| Notes | Anything for staff; never shown to students |
+| `VITE_FIREBASE_API_KEY` | `apiKey` |
+| `VITE_FIREBASE_AUTH_DOMAIN` | `authDomain` |
+| `VITE_FIREBASE_PROJECT_ID` | `projectId` |
+| `VITE_FIREBASE_STORAGE_BUCKET` | `storageBucket` |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | `messagingSenderId` |
+| `VITE_FIREBASE_APP_ID` | `appId` |
 
-**Keep the questions file out of GitHub** — it contains the answer key. `.gitignore` already skips `.csv` files.
+These aren't passwords; Firebase expects them to be public. Keeping them as secrets just keeps the repo tidy.
 
-`tools/convert_forge.py` rebuilds the Questions tab from a Forge-style workbook (the G#S tabs with green/yellow/orange/red rows).
+### 6. Publish
+Push to `main`, or **Actions → Test and deploy → Run workflow**. When it goes green, the site is at
+**https://adamryan3976-glitch.github.io/the-forge/**
 
-## Running an assessment window
-- Set **CurrentWindow** on the Settings tab (e.g. `Fall 2026`). Every attempt is labelled with it.
-- `AssessmentOpen = FALSE` pauses the check-in; `TRUE` opens it.
-- Next term, change the window to `Winter 2027`. Students can take it again and **Trends over time** compares the windows.
-- Students can close the tab and come back. Their answers are saved as they go (for up to 6 hours).
+### 7. First sign-in (you)
+Sign in with your @ddsb.ca account. The app opens **Settings**: check the school name and the current check-in (e.g. *Fall 2026*), add your principal/VP as admins, and **Save**. Leave **Open to students** off until you're ready.
 
-## Updating the app
-```bash
-clasp push
-```
-Then **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**. The URL stays the same.
+### 8. Bring your questions across
+In the **Google Sheet**, update the script with `apps-script/Code.gs` (paste over your Code.gs). Then run **Math Assessment → 4. Export questions for the web app** and download the file. In the web app, go to **Questions → Import from the Sheet** and choose it.
+
+### 9. Test sign-in with a student account ⚠️
+Make a test class, add a test student's number, and turn **Open to students** on. Then sign in as that student in an Incognito window.
+- ✅ "Hi …! This is your Grade … math check-in" means you're ready.
+- ❌ "isn't allowed to sign in to this app" / *Access blocked* means DDSB restricts Google sign-in for students under 18. Ask DDSB IT to allow this app. It only asks for basic sign-in (name and email). They'll find it under the Google Admin console's **API controls → App access control** as the Firebase project's OAuth client.
 
 ---
 
-## Security model
+## Each term
+- **Settings → Current check-in**: change it (e.g. *Winter 2027*). Every attempt is labelled with it; old results are kept and show under **Trends**.
+- **Open to students** on, then off when the window closes.
+- At the end of the year, teachers **Archive** their classes. Students then become free to be added to next year's classes, and their history comes with them.
 
-| Risk | How it's handled |
-|---|---|
-| Students seeing answers | The key stays in the Sheet. The browser only receives question text and options. Scoring happens on the server. |
-| Someone pretending to be another student | Identity comes from Google sign-in (`Session.getActiveUser()`), not from anything the browser sends. |
-| Students seeing other students' results | Report functions check the Staff tab on every call. |
-| Staff outside Winchester | Staff must be on the Staff tab **and** use an allowed staff domain. |
-| Tampered answers | Only this student's grade questions and the letters A–D are accepted. |
-| Malicious text in the Sheet | The page inserts all text with `textContent` (never as HTML). Typed text starting with `= + - @` is stored as plain text so it can't run as a formula. |
-| Hidden server functions | Only functions in `Api.gs` without a trailing `_` can be called from the page; menu functions refuse to run outside the Sheet. |
-| Question tools | The picture importer and paste boxes only work for admins (you, or Staff rows marked `admin`). The app asks for Drive and Forms permission so it can read your Forms and save pictures to its own folder; it only ever opens the Form you paste and the files linked on the Questions tab. |
-| Pictures | Stored in the owner's Drive and sent inside the page by the server. Only files linked on the Questions tab are ever read, never a file the browser asks for. |
-| Data in GitHub | None. The repo holds code and a fake sample file only. `.clasp.json` is git-ignored. |
-| Keeping data forever | **Math Assessment → Delete all data for one assessment window** removes a whole window when your retention period ends. |
-
-See [PRIVACY.md](PRIVACY.md) for what is collected and a pre-launch checklist.
-
----
+## Adding students by CSV
+Any CSV with a student-number column (9 digits, or the full S-number email), a name (one column, or First + Last), and optionally a grade. See [`sample/students_template.csv`](sample/students_template.csv). If there's no grade column, pick one grade for everyone in the import box.
 
 ## Sharing with another school
-1. Send them this repo link (it contains no Winchester data).
-2. They follow **Setup** in their own school account and change **SchoolName**, **StudentDomains** and **StaffDomains** on the Settings tab.
-3. To share your questions, make a copy of your Sheet, **delete the Roster, Attempts, Responses, Staff and Audit Log rows**, and share only that copy.
-
-Each school gets its own Sheet, own data, and own URL. No school can see another's students.
+They fork or copy this repo and create their **own** Firebase project, so their data is separate from Winchester's. Then they change the domain and owner values at the top of `firestore.rules` and in `src/constants.js` / `src/lib/identity.js`, and follow the setup above.
 
 ---
 
 ## Development
 ```bash
-node test/logic.test.js   # scoring, roster parsing and report math, with fake data
+cp .env.example .env    # fill in Firebase values
+npm install
+npm run dev             # local site
+npm test                # scoring, reports, CSV and question-import tests
+npm run test:rules      # security rules against the Firestore emulator (needs Java 21)
 ```
 
 ```
 src/
-  Api.gs        functions the web page can call (all check who is signed in)
-  Logic.gs      pure scoring + report calculations (unit-tested)
-  Util.gs       sheet access, settings, identity, audit
-  Setup.gs      Sheet menu: setup, question checker, data deletion
-  Export.gs     report → new Google Sheet
-  Config.gs     tab names, columns, defaults
-  Index.html + App*.html + Styles.html   the web page
-test/           unit tests
-sample/         fake example questions
+  components/student/   the student check-in (one question per screen, read-aloud, autosave)
+  components/teacher/   classes, roster, CSV import, sharing, reports, student history
+  components/admin/     settings, question bank import
+  lib/report.js         scoring and report maths (unit-tested)
+  lib/data.js           all Firestore reads and writes
+firestore.rules         the security model
+test/                   unit tests + security rule tests
+apps-script/            the Google Sheet tools (question editing, pictures, export)
+tools/                  one-off converter for the original Forge workbook
 ```

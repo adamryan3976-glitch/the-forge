@@ -20,7 +20,8 @@ var SHEET = {
 var HEADERS = {
   'Settings':  ['Key', 'Value', 'Notes'],
   'Questions': ['QuestionID', 'Grade', 'Strand', 'Expectation', 'Question', 'ImageURL',
-                'OptionA', 'OptionB', 'OptionC', 'OptionD', 'Correct', 'WrongRank', 'Active', 'Notes'],
+                'OptionA', 'OptionB', 'OptionC', 'OptionD', 'Correct', 'WrongRank', 'Active', 'Notes',
+                'OptionAImage', 'OptionBImage', 'OptionCImage', 'OptionDImage'],
   'Staff':     ['Email', 'Name', 'Role'],
   'Roster':    ['StudentEmail', 'StudentName', 'Grade', 'Class', 'TeacherEmail'],
   'Attempts':  ['AttemptID', 'Window', 'StudentEmail', 'StudentName', 'Grade', 'Class',

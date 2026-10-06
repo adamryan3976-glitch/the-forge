@@ -223,7 +223,9 @@ var StaffApp = (function () {
           var colour = o.level === null ? 'grey' : ['green', 'yellow', 'orange', 'red'][o.level];
           return h('div', { class: 'optdetail ' + colour },
             h('div', { class: 'row' },
-              h('strong', { text: o.key + '. ' + o.text }), h('span', { class: 'spacer' }),
+              h('strong', { text: o.key + '.' + (o.text ? ' ' + o.text : '') }),
+              o.image ? h('img', { class: 'optimg small', src: o.image, alt: 'Answer ' + o.key }) : null,
+              h('span', { class: 'spacer' }),
               h('span', { class: 'muted', text: (o.levelLabel ? o.levelLabel + ' · ' : '') + o.students.length + ' (' + fmtPct(o.percent) + ')' })),
             o.students.length ? h('div', { class: 'names', text: o.students.map(function (s) {
               return s.name + (F.className === 'all' ? ' (' + s.className + ')' : '');
