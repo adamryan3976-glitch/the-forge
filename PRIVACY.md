@@ -1,36 +1,34 @@
 # Privacy notes
 
-This is a plain-language summary to help you talk with your principal and DDSB IT. It is not legal advice. Ontario school boards follow MFIPPA and their own policies on online tools, so **get board approval before using real student data.**
+This is a plain-language summary for conversations with your principal and DDSB IT. It is not legal advice. Ontario boards follow MFIPPA and their own policies on online tools, so **get board approval before using real student data.**
 
-## What is collected
+## What is stored
 | Data | Why |
 |---|---|
-| Student school email and name | To know who took the check-in and match them to a class |
-| Grade and class | For grade/class reports |
-| Each answer chosen, right or wrong | To find strengths and gaps by strand and question |
-| Start and finish time | To see completion and trends |
-| Staff email on exports and roster changes | Audit trail |
+| Student number, name, grade, class | To give each student the right check-in and group results |
+| Each answer chosen (A–D) and start/finish times | To find strengths and gaps by strand and question |
+| Teacher email and name on classes they own or share | Access control |
 
-Not collected: birth dates, OENs, addresses, IEP or other special-education information, photos, device or location data.
+**Not stored:** birth dates, OENs, addresses, IEP or other special-education information, photos, device or location data. No ads or trackers. The **Read to me** button uses the browser's built-in voice.
 
-## Where it lives
-- In **one Google Sheet owned by the school account that set it up**, inside the board's Google Workspace.
-- Exported reports are new Google Sheets in the same account, shared only with the staff member who asked for them.
-- **Nothing is stored in GitHub**, and the web page uses no outside services, trackers or ads. The **Read to me** feature uses the browser's built-in voice.
+## Where it's stored
+- **Google Firebase (Cloud Firestore)**, in the project the school creates. Choose a Canadian region (Toronto or Montréal) when you create the database.
+- **The GitHub repo holds code only.** Never commit class lists or the questions export (the `.gitignore` blocks `.csv` and export files).
+- On shared devices, the app keeps a small copy of the student's own in-progress answers (letters only) in the browser, in case the page closes while offline. It's deleted when they hand in.
 
 ## Who can see it
-- **Students** see only their own questions (and their score, if `ShowScoreToStudent` is TRUE).
-- **Staff on the Staff tab** see reports for all Winchester classes through the web app.
-- **People the Sheet is shared with** can see everything in it, so keep that list short.
+- **Students:** only their own attempt, never the answer key.
+- **Teachers:** only students currently in classes they own or that are shared with them.
+- **Admins** (listed in Settings, plus the owner account in `firestore.rules`): every class.
+- These rules run on Google's servers and are tested automatically before every publish.
 
-## Retention
-Use **Math Assessment → Delete all data for one assessment window** at the end of the period your board requires. Deleted rows can't be recovered through the app. Remember to also delete old exported report Sheets from Drive.
+## How long it's kept
+Results are kept by student number so progress can be tracked across years. Agree a retention period with your board. An admin can delete old attempts in the Firebase console (`students/{number}/attempts`). If you need a "delete everything older than X" button, ask for one to be added.
 
 ## Before launch checklist
 - [ ] Principal approval
-- [ ] DDSB IT confirms student accounts may use a staff-owned Apps Script web app, and the tool fits board policy (they may want a privacy review)
+- [ ] DDSB IT: OK to store this data in Firebase (they may want a privacy impact assessment), and student Google sign-in allowed for this app
 - [ ] Families informed in the usual way for classroom assessments, if the board requires it
-- [ ] Sheet shared only with the owner (and principal if needed)
-- [ ] Staff tab lists only current Winchester staff
+- [ ] Firestore region set to Canada
+- [ ] Admin list in Settings reviewed
 - [ ] Test run with a test student account
-- [ ] Retention date decided (e.g. delete each window at the end of the school year)

@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+/* Brand palette sampled directly from the FDK Letter Tracker crest --
+   "brand" is the shield/banner teal-blue, "gold" is the shield trim. */
+@theme {
+  --color-brand-50: #edf8fd;
+  --color-brand-100: #d2eef9;
+  --color-brand-200: #a4ddf4;
+  --color-brand-300: #60c3eb;
+  --color-brand-400: #1ba2da;
+  --color-brand-500: #147aa3;
+  --color-brand-600: #116588;
+  --color-brand-700: #0e516d;
+  --color-brand-800: #0a3d52;
+  --color-brand-900: #072936;
+  --color-brand-950: #051b24;
+
+  --color-gold-50: #fcf7ed;
+  --color-gold-100: #f7e7ca;
+  --color-gold-200: #f0d39e;
+  --color-gold-300: #e9bf72;
+  --color-gold-400: #e3af4f;
+  --color-gold-500: #e0a539;
+  --color-gold-600: #cb8f20;
+  --color-gold-700: #a8761a;
+  --color-gold-800: #845d15;
+  --color-gold-900: #61440f;
+}
+
+body {
+  font-family: 'Lexend', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Answer colours (match the Forge sheet: green / yellow / orange / red) */
+@theme {
+  --color-lvl-0: #34a853;
+  --color-lvl-1: #f6c026;
+  --color-lvl-2: #f28b30;
+  --color-lvl-3: #d93025;
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff !important; }
+}

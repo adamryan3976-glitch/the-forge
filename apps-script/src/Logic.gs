@@ -9,9 +9,32 @@ function validQuestion_(q) {
   if (!norm_(q.QuestionID)) return false;
   if (!norm_(q.Question) && !norm_(q.ImageURL)) return false;
   if (CHOICES.indexOf(correct) < 0) return false;
-  if (!norm_(q['Option' + correct])) return false;
+  if (!optionFilled_(q, correct)) return false;
   if (q.Active !== undefined && norm_(q.Active) !== '' && !isTrue_(q.Active)) return false;
   return true;
+}
+
+/** An answer choice exists if it has text or a picture. */
+function optionFilled_(q, k) {
+  return !!(norm_(q['Option' + k]) || norm_(q['Option' + k + 'Image']));
+}
+
+/**
+ * True when the answers are pictures: every choice is just its own letter
+ * ("A", "B"…) and the question uses pictures. (G2-006's real letter answers have no picture.)
+ */
+function hasPictureAnswers_(q) {
+  var letters = CHOICES.filter(function (k) { return norm_(q['Option' + k]); });
+  var bare = letters.length >= 2 && letters.every(function (k) { return norm_(q['Option' + k]).toUpperCase() === k; });
+  var anyOptImg = CHOICES.some(function (k) { return norm_(q['Option' + k + 'Image']); });
+  var usesPictures = anyOptImg || !!norm_(q.ImageURL) || /NEEDS IMAGE/i.test(norm_(q.Notes));
+  return anyOptImg || (bare && usesPictures);
+}
+
+/** Letters whose picture is still missing on a picture-answer question. */
+function missingOptionPictures_(q) {
+  if (!hasPictureAnswers_(q)) return [];
+  return CHOICES.filter(function (k) { return norm_(q['Option' + k]) && !norm_(q['Option' + k + 'Image']); });
 }
 
 /** Question as sent to the browser — never includes the answer. */
@@ -19,7 +42,11 @@ function publicQuestion_(q) {
   var options = [];
   CHOICES.forEach(function (k) {
     var t = norm_(q['Option' + k]);
-    if (t) options.push({ key: k, text: t });
+    var imgUrl = norm_(q['Option' + k + 'Image']);
+    if (!t && !imgUrl) return;
+    if (imgUrl && t.toUpperCase() === k) t = '';   // the badge already shows the letter
+    var dId = driveImageId_(imgUrl);
+    options.push({ key: k, text: t, image: dId ? '' : safeImageUrl_(imgUrl), driveImageId: dId });
   });
   var driveId = driveImageId_(q.ImageURL);
   return { id: norm_(q.QuestionID), text: norm_(q.Question), options: options,

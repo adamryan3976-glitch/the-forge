@@ -20,17 +20,30 @@
   td { border-top: 1px solid #eef0f5; padding: 8px 6px; vertical-align: top; }
   td.id { white-space: nowrap; font-weight: 600; width: 70px; }
   td.text { color: #3a4254; }
-  td.drop { width: 260px; }
+  td.drop { width: 300px; }
   .paste { border: 2px dashed #b9c3d6; border-radius: 10px; min-height: 64px; display: grid; place-items: center;
     text-align: center; color: #5b6477; padding: 6px; cursor: text; outline: none; }
   .paste:focus { border-color: #2356c9; background: #f3f6fd; }
   .paste.done { border-style: solid; border-color: #1e7d4f; background: #f1faf4; color: #1e7d4f; }
   .paste img { max-width: 230px; max-height: 110px; display: block; margin: 0 auto 4px; }
   .small { font-size: 12px; }
+  .topbar { position: sticky; top: 0; z-index: 2; display: flex; gap: 10px; align-items: center; justify-content: space-between;
+    background: #fff; padding: 6px 0 10px; border-bottom: 1px solid #eef0f5; margin-bottom: 10px; }
+  .optgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px; }
+  .paste.small-zone { min-height: 46px; }
+  .paste.small-zone img { max-width: 105px; max-height: 60px; }
+  .answers { margin-top: 8px; }
+  button.linkish { border: 0; background: none; color: #2356c9; padding: 2px 0; font-size: 13px; cursor: pointer; }
+  select { font: inherit; padding: 6px 8px; border: 1px solid #cfd5e1; border-radius: 8px; max-width: 520px; }
   .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 99px; background: #fff2d9; color: #7a4d00; }
 </style>
 </head>
 <body>
+  <div class="topbar">
+    <span class="muted">Every picture saves as soon as you paste it, so there's nothing else to save.</span>
+    <button class="primary" type="button" onclick="google.script.host.close()">Done</button>
+  </div>
+
   <div class="box">
     <h2 style="margin-top:0">1. Import from a Google Form</h2>
     <p class="muted">Paste one Form's edit link (do one Form per grade). Picture blocks in the Form are saved to a private
@@ -47,6 +60,9 @@
     <p class="muted">For pictures attached to a question: in the Form, right-click the picture → <b>Copy image</b>,
       then click a box below and press <b>Ctrl+V</b>. You can also drop in an image file or a screenshot.</p>
     <div id="list"><p class="muted">Loading…</p></div>
+  </div>
+  <div class="row" style="justify-content:flex-end; margin: 4px 0 12px">
+    <button class="primary" type="button" onclick="google.script.host.close()">Done</button>
   </div>
 
 <script>
@@ -91,42 +107,84 @@
   };
 
   // ---- 2. Paste ----
+  var ALL = [];
+  var extra = {};   // questions added with "another question"
+
   function loadList() {
     run('getPictureStatus').then(function (rows) {
-      var list = document.getElementById('list');
-      list.innerHTML = '';
-      if (!rows.length) { list.appendChild(el('p', { class: 'muted', text: 'No questions need pictures.' })); return; }
-      var need = rows.filter(function (r) { return !r.hasImage; }).length;
-      list.appendChild(el('p', { text: need + ' question(s) still need a picture.' }));
-      var tb = el('tbody');
-      rows.forEach(function (q) { tb.appendChild(rowFor(q)); });
-      list.appendChild(el('table', {}, tb));
+      ALL = rows;
+      render();
     }).catch(function (e) { document.getElementById('list').textContent = e.message; });
   }
 
-  function rowFor(q) {
-    var zone = el('div', { class: 'paste' + (q.hasImage ? ' done' : ''), tabindex: '0', role: 'button',
-      'aria-label': 'Paste picture for ' + q.id });
+  function render() {
+    var list = document.getElementById('list');
+    list.innerHTML = '';
+    var shown = ALL.filter(function (q) { return q.usesPictures || extra[q.id]; });
+    var need = shown.filter(function (q) {
+      return (q.needs && !q.hasImage) || (q.pictureAnswers && q.options.some(function (o) { return !o.hasImage; }));
+    }).length;
+    list.appendChild(el('p', { text: need ? need + ' question(s) still need a picture.' : 'Every listed question has its pictures. ✓' }));
+    var tb = el('tbody');
+    shown.forEach(function (q) { tb.appendChild(rowFor(q)); });
+    list.appendChild(el('table', {}, tb));
+
+    // Add pictures to any other question.
+    var sel = el('select', { 'aria-label': 'Choose a question' }, el('option', { value: '', text: 'Choose a question…' }));
+    ALL.filter(function (q) { return !q.usesPictures && !extra[q.id]; }).forEach(function (q) {
+      sel.appendChild(el('option', { value: q.id, text: q.id + ' — ' + q.text.slice(0, 70) }));
+    });
+    sel.onchange = function () { if (sel.value) { extra[sel.value] = true; render(); } };
+    list.appendChild(el('div', { class: 'row', style: 'margin-top:12px' },
+      el('span', { class: 'muted', text: 'Add pictures to another question:' }), sel));
+  }
+
+  function zoneFor(q, slot, label, has) {
+    var zone = el('div', { class: 'paste' + (has ? ' done' : '') + (slot ? ' small-zone' : ''), tabindex: '0', role: 'button',
+      'aria-label': 'Paste ' + label + ' for ' + q.id });
     var file = el('input', { type: 'file', accept: 'image/*', style: 'display:none' });
-    setZone(zone, q.hasImage ? (q.active ? 'Picture saved ✓ — paste again to replace' : 'Picture saved — review, then tick Active') : 'Click, then Ctrl+V');
+    setZone(zone, has ? label + ' ✓ (paste to replace)' : label + ': click, then Ctrl+V');
     zone.addEventListener('paste', function (e) {
       var items = (e.clipboardData || {}).items || [];
       for (var i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf('image/') === 0) { e.preventDefault(); handle(q, zone, items[i].getAsFile()); return; }
+        if (items[i].type.indexOf('image/') === 0) { e.preventDefault(); handle(q, slot, label, zone, items[i].getAsFile()); return; }
       }
       e.preventDefault();
       setZone(zone, 'That wasn’t a picture. Right-click the image → Copy image.');
     });
     zone.addEventListener('dblclick', function () { file.click(); });
     zone.addEventListener('dragover', function (e) { e.preventDefault(); });
-    zone.addEventListener('drop', function (e) { e.preventDefault(); if (e.dataTransfer.files[0]) handle(q, zone, e.dataTransfer.files[0]); });
-    file.addEventListener('change', function () { if (file.files[0]) handle(q, zone, file.files[0]); });
+    zone.addEventListener('drop', function (e) { e.preventDefault(); if (e.dataTransfer.files[0]) handle(q, slot, label, zone, e.dataTransfer.files[0]); });
+    file.addEventListener('change', function () { if (file.files[0]) handle(q, slot, label, zone, file.files[0]); });
+    return el('div', {}, zone, file);
+  }
+
+  function rowFor(q) {
     var text = el('td', { class: 'text' }, q.text || '(picture-only question)');
     if (q.review) text.appendChild(el('div', {}, el('span', { class: 'tag', text: 'Has a REVIEW note' })));
+
+    var showAnswers = q.pictureAnswers || q.showAnswers;
+    var answersBox = el('div', { class: 'answers' });
+    if (showAnswers) {
+      answersBox.appendChild(el('div', { class: 'small muted', text: 'Answer pictures:' }));
+      var grid = el('div', { class: 'optgrid' });
+      q.options.forEach(function (o) {
+        grid.appendChild(zoneFor(q, o.key, 'Answer ' + o.key, o.hasImage));
+      });
+      answersBox.appendChild(grid);
+    } else {
+      var link = el('button', { class: 'linkish', type: 'button', text: '+ The answers are pictures too' });
+      link.onclick = function () { q.showAnswers = true; render(); };
+      answersBox.appendChild(link);
+    }
+
     return el('tr', {},
       el('td', { class: 'id', text: q.id }),
       text,
-      el('td', { class: 'drop' }, zone, el('div', { class: 'small muted', text: 'or double-click to choose a file' }), file));
+      el('td', { class: 'drop' },
+        zoneFor(q, '', 'Question picture', q.hasImage),
+        el('div', { class: 'small muted', text: 'or double-click a box to choose a file' }),
+        answersBox));
   }
 
   function setZone(zone, message, imgSrc) {
@@ -135,24 +193,29 @@
     zone.appendChild(el('span', { class: 'small', text: message }));
   }
 
-  function handle(q, zone, fileBlob) {
+  function handle(q, slot, label, zone, fileBlob) {
     if (!fileBlob || fileBlob.type.indexOf('image/') !== 0) { setZone(zone, 'Please use a picture file.'); return; }
     setZone(zone, 'Saving…');
-    shrink(fileBlob).then(function (dataUrl) {
-      return run('savePastedPicture', q.id, dataUrl).then(function (res) {
-        zone.className = 'paste done';
-        setZone(zone, res.activated ? 'Saved ✓ and switched on' : 'Saved ✓ — review, then tick Active', dataUrl);
+    shrink(fileBlob, slot ? 500 : 1000).then(function (dataUrl) {
+      return run('savePastedPicture', q.id, dataUrl, slot).then(function (res) {
+        zone.className = 'paste done' + (slot ? ' small-zone' : '');
+        if (slot) { q.options.forEach(function (o) { if (o.key === slot) o.hasImage = true; }); }
+        else q.hasImage = true;
+        var msg = res.activated ? 'Saved ✓ and switched on'
+                : res.stillNeeds.length ? 'Saved ✓ — still needs ' + res.stillNeeds.join(', ')
+                : 'Saved ✓ — review, then tick Active';
+        setZone(zone, msg, dataUrl);
       });
-    }).catch(function (e) { zone.className = 'paste'; setZone(zone, e.message); });
+    }).catch(function (e) { zone.className = 'paste' + (slot ? ' small-zone' : ''); setZone(zone, e.message); });
   }
 
   /** Keeps pictures a sensible size (max 1000px wide) so pages load fast. */
-  function shrink(blob) {
+  function shrink(blob, maxW) {
     return new Promise(function (ok, bad) {
       var img = new Image();
       var url = URL.createObjectURL(blob);
       img.onload = function () {
-        var scale = Math.min(1, 1000 / img.naturalWidth);
+        var scale = Math.min(1, (maxW || 1000) / img.naturalWidth);
         var c = document.createElement('canvas');
         c.width = Math.round(img.naturalWidth * scale);
         c.height = Math.round(img.naturalHeight * scale);

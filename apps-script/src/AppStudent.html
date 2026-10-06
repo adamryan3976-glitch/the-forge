@@ -46,7 +46,9 @@ var StudentApp = (function () {
       return h('button', {
         class: 'option', 'aria-pressed': S.answers[q.id] === o.key ? 'true' : 'false',
         onclick: function () { choose(q.id, o.key); }
-      }, h('span', { class: 'letter', text: o.key }), h('span', { text: o.text }));
+      }, h('span', { class: 'letter', text: o.key }),
+         o.image ? h('img', { class: 'optimg', src: o.image, alt: 'Answer ' + o.key + (o.text ? ': ' + o.text : ' (picture)') }) : null,
+         o.text ? h('span', { text: o.text }) : null);
     });
     mount(h('div', { class: 'card' },
       h('div', { class: 'row' },
@@ -124,7 +126,9 @@ var StudentApp = (function () {
 
   function speak(q) {
     stopSpeaking();
-    var text = q.text + '. ' + q.options.map(function (o) { return o.key + '. ' + o.text; }).join('. ');
+    var text = (q.text || 'Look at the picture.') + '. ' + q.options.map(function (o) {
+      return o.key + '. ' + (o.text || 'picture');
+    }).join('. ');
     var u = new SpeechSynthesisUtterance(text);
     u.rate = 0.9;
     u.lang = 'en-CA';

@@ -1,0 +1,214 @@
+rules_version = '2';
+
+// =======================================================================
+// The Forge — Firestore security rules
+// =======================================================================
+// These rules are the real security of the app. They run on Google's
+// servers, so nothing a student or teacher does in their browser can get
+// around them.
+//
+// Who is who (from the Google account that signed in):
+//   * Staff    — any verified @ddsb.ca account
+//   * Students — S#########@ddsbstudent.ca (the 9 digits = student number)
+//   * Admins   — the OWNER account(s) below, plus anyone an admin adds to
+//                config/app.admins in the app's Settings page
+//
+// Data layout:
+//   config/app                       school settings, current window, admins
+//   questions/{qid}                  question text + options (NO answers)
+//   answerKeys/{qid}                 correct letter + "how wrong" ranking — staff only
+//   questionImages/{qid__slot}       pictures for questions / answers
+//   classes/{classId}                a class: owner, editors, viewers, archived
+//   classes/{classId}/roster/{sn}    students in that class (sn = 9-digit number)
+//   enrolments/{sn}                  which ACTIVE class + grade a student is in
+//   students/{sn}/attempts/{id}      a student's assessment attempts, kept for
+//                                    as long as they are a DDSB student
+// =======================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Change these when another school or board sets up its own copy ----
+    function ownerEmails()   { return ['adamryan3976@ddsb.ca']; }
+    function staffPattern()  { return '^[^@]+@ddsb[.]ca$'; }
+    function studentDomain() { return '@ddsbstudent.ca'; }
+    function studentPattern() { return '^s[0-9]{9}@ddsbstudent[.]ca$'; }
+    // -------------------------------------------------------------------------
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function email() { return request.auth.token.email.lower(); }
+
+    function isStaff()   { return signedIn() && email().matches(staffPattern()); }
+    function isStudent() { return signedIn() && email().matches(studentPattern()); }
+    function isStudentNumber(sn) { return isStudent() && email() == 's' + sn + studentDomain(); }
+    function validNumber(sn) { return sn.matches('^[0-9]{9}$'); }
+
+    function config() { return get(/databases/$(database)/documents/config/app).data; }
+    function isAdmin() {
+      return isStaff() && (email() in ownerEmails() || email() in config().get('admins', []));
+    }
+
+    function classDoc(cid) { return get(/databases/$(database)/documents/classes/$(cid)).data; }
+    function canReadClassData(c) {
+      return isStaff() && (c.ownerEmail == email() || email() in c.editors || email() in c.viewers || isAdmin());
+    }
+    function canEditClassData(c) {
+      return isStaff() && c.archived == false && (c.ownerEmail == email() || email() in c.editors || isAdmin());
+    }
+    function enrolment(sn) { return get(/databases/$(database)/documents/enrolments/$(sn)).data; }
+    function grades() { return ['K', '1', '2', '3', '4', '5', '6', '7', '8']; }
+
+    // ---------------- Settings ----------------
+    match /config/{docId} {
+      allow read: if isStaff() || isStudent();
+      allow write: if isAdmin() && docId == 'app' &&
+        request.resource.data.currentWindow is string &&
+        request.resource.data.windowKey.matches('^[a-z0-9-]{1,40}$') &&
+        request.resource.data.admins is list;
+    }
+
+    // ---------------- Question bank ----------------
+    match /questions/{qid} {
+      allow read: if isStaff() || isStudent();
+      allow write: if isAdmin();
+    }
+    match /answerKeys/{qid} {
+      allow read: if isStaff();          // never students
+      allow write: if isAdmin();
+    }
+    match /questionImages/{imgId} {
+      allow read: if isStaff() || isStudent();
+      allow write: if isAdmin();
+    }
+
+    // ---------------- Classes ----------------
+    function validClass(d) {
+      return d.keys().hasAll(['name', 'ownerEmail', 'ownerName', 'editors', 'viewers', 'archived', 'schoolYear', 'createdAt']) &&
+        d.name is string && d.name.size() > 0 && d.name.size() <= 80 &&
+        d.editors is list && d.viewers is list && d.editors.size() <= 20 && d.viewers.size() <= 20 &&
+        d.archived is bool && d.schoolYear is string;
+    }
+
+    match /classes/{classId} {
+      allow read: if isStaff() && (
+        resource.data.ownerEmail == email() ||
+        email() in resource.data.editors ||
+        email() in resource.data.viewers ||
+        isAdmin());
+
+      allow create: if isStaff() && validClass(request.resource.data) &&
+        request.resource.data.ownerEmail == email() &&
+        request.resource.data.archived == false;
+
+      // Only the owner (or an admin) changes the name, sharing or archive
+      // setting. Only an admin can hand a class to a different owner.
+      allow update: if validClass(request.resource.data) && (
+        isAdmin() ||
+        (isStaff() && resource.data.ownerEmail == email() &&
+         request.resource.data.ownerEmail == resource.data.ownerEmail));
+
+      // Classes are archived, never deleted, so results keep their context.
+      allow delete: if false;
+
+      match /roster/{sn} {
+        allow read: if canReadClassData(classDoc(classId));
+
+        // A roster entry must always match the student's enrolment (written in
+        // the same batch), so a class can't quietly list a student it doesn't hold.
+        allow create, update: if validNumber(sn) &&
+          canEditClassData(classDoc(classId)) &&
+          request.resource.data.keys().hasOnly(['name', 'grade', 'addedAt', 'addedBy']) &&
+          request.resource.data.name is string && request.resource.data.name.size() <= 80 &&
+          request.resource.data.grade in grades() &&
+          getAfter(/databases/$(database)/documents/enrolments/$(sn)).data.classId == classId &&
+          getAfter(/databases/$(database)/documents/enrolments/$(sn)).data.grade == request.resource.data.grade;
+
+        allow delete: if canEditClassData(classDoc(classId)) &&
+          (!existsAfter(/databases/$(database)/documents/enrolments/$(sn)) ||
+           getAfter(/databases/$(database)/documents/enrolments/$(sn)).data.classId != classId);
+      }
+    }
+
+    // ---------------- Enrolments: one active class per student ----------------
+    function validEnrolment(d, sn) {
+      return d.keys().hasOnly(['classId', 'className', 'grade', 'name', 'schoolYear', 'updatedAt', 'updatedBy']) &&
+        d.classId is string && d.grade in grades() &&
+        d.name is string && d.name.size() <= 80 &&
+        existsAfter(/databases/$(database)/documents/classes/$(d.classId)/roster/$(sn));
+    }
+
+    match /enrolments/{sn} {
+      // Staff may also look up a number that ISN'T enrolled yet (resource == null),
+      // so the app can tell "new student" from "already in another class"
+      // without revealing anything about that other class.
+      allow read: if isStudentNumber(sn) ||
+        (isStaff() && (resource == null || isAdmin() || canReadClassData(classDoc(resource.data.classId))));
+
+      allow create: if isStaff() && validNumber(sn) &&
+        validEnrolment(request.resource.data, sn) &&
+        canEditClassData(classDoc(request.resource.data.classId));
+
+      // Moving a student: you must be able to edit the new class AND the
+      // student must be free — still in a class you can edit, or their old
+      // class has been archived. Admins can always move students.
+      allow update: if isStaff() &&
+        validEnrolment(request.resource.data, sn) &&
+        canEditClassData(classDoc(request.resource.data.classId)) && (
+          isAdmin() ||
+          resource.data.classId == request.resource.data.classId ||
+          !exists(/databases/$(database)/documents/classes/$(resource.data.classId)) ||
+          classDoc(resource.data.classId).archived == true ||
+          canEditClassData(classDoc(resource.data.classId)));
+
+      allow delete: if isStaff() &&
+        (isAdmin() || canEditClassData(classDoc(resource.data.classId))) &&
+        !existsAfter(/databases/$(database)/documents/classes/$(resource.data.classId)/roster/$(sn));
+    }
+
+    // ---------------- Assessment attempts, kept by student number ----------------
+    function attemptOpen() { return config().assessmentOpen == true; }
+
+    match /students/{sn}/attempts/{attemptId} {
+      // The student, any teacher of their current class, and admins.
+      allow read: if isStudentNumber(sn) ||
+        (isStaff() && (isAdmin() || canReadClassData(classDoc(enrolment(sn).classId))));
+
+      // A student starts an attempt for THEIR grade and class, in the current
+      // window. With retakes off, the id is fixed, so there's only ever one.
+      allow create: if isStudentNumber(sn) && attemptOpen() &&
+        classDoc(enrolment(sn).classId).archived == false &&
+        request.resource.data.keys().hasOnly(['studentNumber', 'studentName', 'grade', 'classId', 'className',
+          'window', 'questionIds', 'answers', 'answeredCount', 'status', 'startedAt', 'updatedAt', 'submittedAt']) &&
+        request.resource.data.studentNumber == sn &&
+        request.resource.data.grade == enrolment(sn).grade &&
+        request.resource.data.classId == enrolment(sn).classId &&
+        request.resource.data.window == config().currentWindow &&
+        request.resource.data.status == 'in_progress' &&
+        request.resource.data.answers is map && request.resource.data.answers.size() == 0 &&
+        request.resource.data.questionIds is list && request.resource.data.questionIds.size() <= 120 &&
+        request.resource.data.startedAt == request.time &&
+        ((config().allowRetakes == true && attemptId.matches('^' + config().windowKey + '__[0-9]{1,3}$')) ||
+         attemptId == config().windowKey + '__1');
+
+      // Saving answers and submitting. Once submitted, it can't be changed.
+      allow update: if isStudentNumber(sn) && attemptOpen() &&
+        resource.data.status == 'in_progress' &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['answers', 'answeredCount', 'updatedAt', 'status', 'submittedAt']) &&
+        request.resource.data.answers is map && request.resource.data.answers.size() <= 120 &&
+        request.resource.data.updatedAt == request.time &&
+        (request.resource.data.status == 'in_progress' ||
+         (request.resource.data.status == 'submitted' && request.resource.data.submittedAt == request.time));
+
+      // Teachers can reset an attempt (e.g. let one student redo it).
+      allow delete: if isStaff() && (isAdmin() || canEditClassData(classDoc(enrolment(sn).classId)));
+    }
+
+    // Everything else is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
