@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { School, BarChart3, BookOpen, Settings as SettingsIcon } from 'lucide-react';
+import { School, BarChart3, BookOpen, Eye, Settings as SettingsIcon } from 'lucide-react';
 import Header, { NavButton } from '../Header.jsx';
 import { Spinner, ErrorBox } from '../ui.jsx';
 import { getConfig, listClasses } from '../../lib/data.js';
@@ -7,6 +7,7 @@ import { isAdminEmail } from '../../lib/identity.js';
 import ClassList from './ClassList.jsx';
 import ClassView from './ClassView.jsx';
 import Reports from './Reports.jsx';
+import Preview from './Preview.jsx';
 import Settings from '../admin/Settings.jsx';
 import QuestionBank from '../admin/QuestionBank.jsx';
 
@@ -54,6 +55,7 @@ export default function TeacherApp({ user, email, onSignOut }) {
           onReport={() => go('reports', { classId: cls.id })} />
       : <ErrorBox>That class couldn’t be found.</ErrorBox>;
   } else if (view.name === 'reports') body = <Reports classes={classes} cfg={cfg} me={me} initialClassId={view.classId} />;
+  else if (view.name === 'preview') body = <Preview cfg={cfg} me={me} />;
   else if (view.name === 'settings' && isAdmin) body = <Settings cfg={cfg} me={me} firstRun={view.firstRun} onSaved={(c) => { setCfg(c); }} />;
   else if (view.name === 'questions' && isAdmin) body = <QuestionBank />;
   else body = <ClassList classes={classes} me={me} cfg={cfg} onOpen={(id) => go('class', { classId: id })} onCreated={(c) => { setClasses((l) => [...l, c]); go('class', { classId: c.id }); }} />;
@@ -63,6 +65,7 @@ export default function TeacherApp({ user, email, onSignOut }) {
       <Header schoolName={cfg?.schoolName || ''} user={user} onSignOut={onSignOut}>
         <NavButton icon={School} active={['classes', 'class'].includes(view.name)} onClick={() => go('classes')}>Classes</NavButton>
         <NavButton icon={BarChart3} active={view.name === 'reports'} onClick={() => go('reports')}>Reports</NavButton>
+        <NavButton icon={Eye} active={view.name === 'preview'} onClick={() => go('preview')}>Preview</NavButton>
         {isAdmin && <NavButton icon={BookOpen} active={view.name === 'questions'} onClick={() => go('questions')}>Questions</NavButton>}
         {isAdmin && <NavButton icon={SettingsIcon} active={view.name === 'settings'} onClick={() => go('settings')}>Settings</NavButton>}
       </Header>

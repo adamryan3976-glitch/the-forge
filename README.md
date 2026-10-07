@@ -12,6 +12,7 @@ A grade-level math check-in for K–8 students at Winchester P.S. (DDSB), built 
   - trends across check-ins and school years
   - who hasn't finished yet
   - CSV export and print/PDF
+- **Preview**: any teacher can pick a grade and go through its check-in exactly as a student sees it. Nothing is saved. They can flag problems on any question and email the notes at the end.
 - **Admins** (principal/VP) see every class automatically. They also manage settings and the question bank.
 - **Questions are edited in the Google Sheet** (see `apps-script/`) and imported with one click. Students never receive the answer key.
 
