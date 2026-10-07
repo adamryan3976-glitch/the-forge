@@ -62,8 +62,9 @@ function menuSetup() {
   // Answer columns are plain text, so Sheets doesn't turn "1/2" into a date or "$3" into a number.
   // Cells Sheets already converted are rewritten as the text they show, then locked as text.
   ['Question', 'OptionA', 'OptionB', 'OptionC', 'OptionD', 'WrongRank', 'Expectation'].forEach(function (name) {
-    if (!col(name)) return;
-    var r = q.getRange(2, col(name), rows, 1);
+    var c = col(q, name);
+    if (!c) return;
+    var r = q.getRange(2, c, rows, 1);
     var shown = r.getDisplayValues();
     r.setNumberFormat('@');
     r.setValues(shown);
