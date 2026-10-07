@@ -214,7 +214,7 @@ export default function StudentApp({ user, studentNumber: sn, onSignOut }) {
   );
 }
 
-function QuestionScreen({ q, index, total, answered, images, chosen, onChoose, onBack, onNext, isLast, status, saveError }) {
+export function QuestionScreen({ q, index, total, answered, images, chosen, onChoose, onBack, onNext, isLast, status, saveError }) {
   const options = useMemo(() => ['A', 'B', 'C', 'D'].filter((k) => q.options?.[k]).map((k) => ({ key: k, ...q.options[k] })), [q]);
   const topRef = useRef(null);
   useEffect(() => { window.speechSynthesis?.cancel(); topRef.current?.focus(); }, [q.id]);
@@ -292,7 +292,7 @@ function SaveStatus({ online, pending }) {
   return <span className="inline-flex items-center gap-1 text-xs text-emerald-700"><Check className="w-4 h-4" /> Saved</span>;
 }
 
-function Big({ emoji, logo, title, children }) {
+export function Big({ emoji, logo, title, children }) {
   return (
     <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center shadow-sm">
       {logo

@@ -212,6 +212,16 @@ export async function getQuestionBank() {
   return bank;
 }
 
+/** Staff only: answer keys for some questions, keyed by id: { G3-004: { correct, wrongRank } } */
+export async function getAnswerKeys(ids) {
+  const out = {};
+  for (let i = 0; i < ids.length; i += 30) {
+    const snap = await getDocs(query(collection(db, 'answerKeys'), where(documentId(), 'in', ids.slice(i, i + 30))));
+    snap.docs.forEach((d) => { out[d.id] = { correct: d.data().correct, wrongRank: d.data().wrongRank || [] }; });
+  }
+  return out;
+}
+
 /** Loads pictures for a question: { Q: dataUrl, A: dataUrl, ... } */
 export async function getQuestionImages(q) {
   const slots = (q.imageSlots || []);
