@@ -59,6 +59,15 @@ function menuSetup() {
   q.getRange(2, col(q, 'Strand'), rows, 1).setDataValidation(
     SpreadsheetApp.newDataValidation().requireValueInList(STRANDS, true).setAllowInvalid(true).build());
   q.getRange(2, col(q, 'Active'), rows, 1).insertCheckboxes();
+  // Answer columns are plain text, so Sheets doesn't turn "1/2" into a date or "$3" into a number.
+  // Cells Sheets already converted are rewritten as the text they show, then locked as text.
+  ['Question', 'OptionA', 'OptionB', 'OptionC', 'OptionD', 'WrongRank', 'Expectation'].forEach(function (name) {
+    if (!col(name)) return;
+    var r = q.getRange(2, col(name), rows, 1);
+    var shown = r.getDisplayValues();
+    r.setNumberFormat('@');
+    r.setValues(shown);
+  });
   var st = sheet_(SHEET.STAFF);
   st.getRange(2, col(st, 'Role'), Math.max(st.getMaxRows() - 1, 1), 1).setDataValidation(
     SpreadsheetApp.newDataValidation().requireValueInList(['teacher', 'admin'], true).build());

@@ -101,6 +101,37 @@ function readRows_(name) {
   return out;
 }
 
+/**
+ * Like readRows_, but text columns hold exactly what the cell SHOWS. Sheets
+ * turns typed answers such as "1/11" into dates and "$3" into numbers; the
+ * displayed text is what the question author meant. Checkbox columns keep
+ * their true/false value.
+ */
+function readDisplayRows_(name, keepRawColumns) {
+  var sh = sheet_(name);
+  var lastRow = sh.getLastRow();
+  var lastCol = sh.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) return [];
+  var range = sh.getRange(1, 1, lastRow, lastCol);
+  var raw = range.getValues();
+  var shown = range.getDisplayValues();
+  var headers = raw[0].map(function (h) { return String(h).trim(); });
+  var keep = keepRawColumns || [];
+  var out = [];
+  for (var r = 1; r < raw.length; r++) {
+    var empty = true;
+    var obj = {};
+    for (var c = 0; c < headers.length; c++) {
+      if (!headers[c]) continue;
+      var v = keep.indexOf(headers[c]) >= 0 ? raw[r][c] : shown[r][c];
+      obj[headers[c]] = v;
+      if (raw[r][c] !== '' && raw[r][c] !== null && raw[r][c] !== false) empty = false;
+    }
+    if (!empty) { obj._row = r + 1; out.push(obj); }
+  }
+  return out;
+}
+
 /** Appends objects to a tab using that tab's header order. */
 function appendRows_(name, objects) {
   if (!objects.length) return;
@@ -1092,6 +1123,15 @@ function menuSetup() {
   q.getRange(2, col(q, 'Strand'), rows, 1).setDataValidation(
     SpreadsheetApp.newDataValidation().requireValueInList(STRANDS, true).setAllowInvalid(true).build());
   q.getRange(2, col(q, 'Active'), rows, 1).insertCheckboxes();
+  // Answer columns are plain text, so Sheets doesn't turn "1/2" into a date or "$3" into a number.
+  // Cells Sheets already converted are rewritten as the text they show, then locked as text.
+  ['Question', 'OptionA', 'OptionB', 'OptionC', 'OptionD', 'WrongRank', 'Expectation'].forEach(function (name) {
+    if (!col(name)) return;
+    var r = q.getRange(2, col(name), rows, 1);
+    var shown = r.getDisplayValues();
+    r.setNumberFormat('@');
+    r.setValues(shown);
+  });
   var st = sheet_(SHEET.STAFF);
   st.getRange(2, col(st, 'Role'), Math.max(st.getMaxRows() - 1, 1), 1).setDataValidation(
     SpreadsheetApp.newDataValidation().requireValueInList(['teacher', 'admin'], true).build());
@@ -1611,7 +1651,7 @@ function planFormImport_(items, questions) {
  */
 function menuExportForApp() {
   var ui = menuGuard_();
-  var rows = readRows_(SHEET.QUESTIONS).filter(function (q) { return norm_(q.QuestionID); });
+  var rows = readDisplayRows_(SHEET.QUESTIONS, ['Active']).filter(function (q) { return norm_(q.QuestionID); });
   if (!rows.length) { ui.alert('There are no questions to export.'); return; }
 
   var missing = [];

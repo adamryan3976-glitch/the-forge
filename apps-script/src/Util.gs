@@ -36,6 +36,37 @@ function readRows_(name) {
   return out;
 }
 
+/**
+ * Like readRows_, but text columns hold exactly what the cell SHOWS. Sheets
+ * turns typed answers such as "1/11" into dates and "$3" into numbers; the
+ * displayed text is what the question author meant. Checkbox columns keep
+ * their true/false value.
+ */
+function readDisplayRows_(name, keepRawColumns) {
+  var sh = sheet_(name);
+  var lastRow = sh.getLastRow();
+  var lastCol = sh.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) return [];
+  var range = sh.getRange(1, 1, lastRow, lastCol);
+  var raw = range.getValues();
+  var shown = range.getDisplayValues();
+  var headers = raw[0].map(function (h) { return String(h).trim(); });
+  var keep = keepRawColumns || [];
+  var out = [];
+  for (var r = 1; r < raw.length; r++) {
+    var empty = true;
+    var obj = {};
+    for (var c = 0; c < headers.length; c++) {
+      if (!headers[c]) continue;
+      var v = keep.indexOf(headers[c]) >= 0 ? raw[r][c] : shown[r][c];
+      obj[headers[c]] = v;
+      if (raw[r][c] !== '' && raw[r][c] !== null && raw[r][c] !== false) empty = false;
+    }
+    if (!empty) { obj._row = r + 1; out.push(obj); }
+  }
+  return out;
+}
+
 /** Appends objects to a tab using that tab's header order. */
 function appendRows_(name, objects) {
   if (!objects.length) return;
