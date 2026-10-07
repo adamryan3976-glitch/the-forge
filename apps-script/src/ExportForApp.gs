@@ -6,7 +6,7 @@
  */
 function menuExportForApp() {
   var ui = menuGuard_();
-  var rows = readRows_(SHEET.QUESTIONS).filter(function (q) { return norm_(q.QuestionID); });
+  var rows = readDisplayRows_(SHEET.QUESTIONS, ['Active']).filter(function (q) { return norm_(q.QuestionID); });
   if (!rows.length) { ui.alert('There are no questions to export.'); return; }
 
   var missing = [];
