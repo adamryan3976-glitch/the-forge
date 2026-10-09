@@ -48,9 +48,10 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # The site lives at https://<user>.github.io/the-forge/. If you add a
-          # custom domain (e.g. math.winchesterps.ca), change this to "/".
-          VITE_BASE: /the-forge/
+          # The site lives at the custom domain https://wps-forge.winchesterps.ca/,
+          # so it is served from the root. Without a custom domain this would be
+          # /the-forge/ (https://<user>.github.io/the-forge/).
+          VITE_BASE: /
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
