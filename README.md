@@ -46,7 +46,7 @@ All access rules live in [`firestore.rules`](firestore.rules). They are enforced
 
 ### 2. Turn on Google sign-in
 **Build → Authentication → Get started → Sign-in method → Google → Enable** → choose a support email → **Save**.
-Then **Authentication → Settings → Authorized domains → Add domain** → `adamryan3976-glitch.github.io` (your GitHub Pages address).
+Then **Authentication → Settings → Authorized domains → Add domain** → `wps-forge.winchesterps.ca` (the site's address; also `adamryan3976-glitch.github.io` if you ever use the GitHub address).
 
 ### 3. Create the database and paste in the security rules
 1. **Build → Firestore Database → Create database** → **production mode** → region **northamerica-northeast2 (Toronto)** or **northamerica-northeast1 (Montréal)**.
@@ -74,7 +74,9 @@ These aren't passwords; Firebase expects them to be public. Keeping them as secr
 
 ### 6. Publish
 Push to `main`, or **Actions → Test and deploy → Run workflow**. When it goes green, the site is at
-**https://adamryan3976-glitch.github.io/the-forge/**
+**https://wps-forge.winchesterps.ca/**
+
+**Custom domain:** the DNS for `winchesterps.ca` needs a CNAME record `wps-forge` → `adamryan3976-glitch.github.io`, and the repo's **Settings → Pages → Custom domain** must say `wps-forge.winchesterps.ca` with **Enforce HTTPS** ticked. The workflow builds with `VITE_BASE: /` for this; without a custom domain it would be `/the-forge/`.
 
 ### 7. First sign-in (you)
 Sign in with your @ddsb.ca account. The app opens **Settings**: check the school name and the current check-in (e.g. *Fall 2026*), add your principal/VP as admins, and **Save**. Leave **Open to students** off until you're ready.
