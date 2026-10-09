@@ -118,7 +118,7 @@ function Privacy() {
       <P className="text-lg">The Forge is a math check-in for Winchester P.S. students. It collects only what a teacher needs to give each student the right grade-level questions and to see what they know: student number, name, grade, class and multiple-choice answers. It uses basic Google sign-in (name and email only), shows no ads, has no tracking or analytics, and never sells or shares student information.</P>
 
       <H2>1. Who this policy covers</H2>
-      <P>This policy covers <strong>The Forge</strong> (Math Check-In), a website at https://adamryan3976-glitch.github.io/the-forge/ used by Winchester Public School, Durham District School Board (DDSB).</P>
+      <P>This policy covers <strong>The Forge</strong> (Math Check-In), a website at https://wps-forge.winchesterps.ca/ used by Winchester Public School, Durham District School Board (DDSB).</P>
       <UL>
         <li><strong>Operated by:</strong> Ryan Adams, teacher, Winchester P.S., on behalf of the school.</li>
         <li><strong>Used by:</strong> Winchester P.S. students (Kindergarten to Grade 8) and staff.</li>
