@@ -1,3 +1,8 @@
+/*
+ * The Forge · Math Check-In
+ * Copyright (c) 2026 Ryan Adams and Natasha Allen. All rights reserved.
+ * Not to be copied, modified or distributed without the authors' written permission. See LICENSE.
+ */
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 // Fonts are bundled with the app (no request to Google Fonts).

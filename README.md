@@ -98,7 +98,7 @@ Make a test class, add a test student's number, and turn **Open to students** on
 Any CSV with a student-number column (9 digits, or the full S-number email), a name (one column, or First + Last), and optionally a grade. See [`sample/students_template.csv`](sample/students_template.csv). If there's no grade column, pick one grade for everyone in the import box.
 
 ## Sharing with another school
-They fork or copy this repo and create their **own** Firebase project, so their data is separate from Winchester's. Then they change the domain and owner values at the top of `firestore.rules` and in `src/constants.js` / `src/lib/identity.js`, and follow the setup above.
+The Forge is not open source. **Another school may use it only with written permission from both authors** (see [Copyright](#copyright)). With permission, they copy this repo and create their **own** Firebase project, so their data is separate from Winchester's. Then they change the domain and owner values at the top of `firestore.rules` and in `src/constants.js` / `src/lib/identity.js`, and follow the setup above.
 
 ---
 
@@ -123,3 +123,11 @@ test/                   unit tests + security rule tests
 apps-script/            the Google Sheet tools (question editing, pictures, export)
 tools/                  one-off converter for the original Forge workbook
 ```
+
+---
+
+## Copyright
+
+**The Forge © 2026 Ryan Adams and Natasha Allen. All rights reserved.**
+
+This repository is publicly viewable so the site can be published and reviewed, but no licence is granted. It may not be copied, modified, deployed or distributed, in whole or in part, without the prior written permission of both authors. See [`LICENSE`](LICENSE) and the in-app **Copyright & Terms of Use** page. Permission requests: ryan.adams@ddsb.ca.

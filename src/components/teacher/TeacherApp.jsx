@@ -8,6 +8,7 @@ import ClassList from './ClassList.jsx';
 import ClassView from './ClassView.jsx';
 import Reports from './Reports.jsx';
 import Preview from './Preview.jsx';
+import { Footer } from '../Legal.jsx';
 import Settings from '../admin/Settings.jsx';
 import QuestionBank from '../admin/QuestionBank.jsx';
 
@@ -61,7 +62,7 @@ export default function TeacherApp({ user, email, onSignOut }) {
   else body = <ClassList classes={classes} me={me} cfg={cfg} onOpen={(id) => go('class', { classId: id })} onCreated={(c) => { setClasses((l) => [...l, c]); go('class', { classId: c.id }); }} />;
 
   return (
-    <div className="min-h-screen bg-stone-50">
+    <div className="min-h-screen bg-stone-50 flex flex-col">
       <Header schoolName={cfg?.schoolName || ''} user={user} onSignOut={onSignOut}>
         <NavButton icon={School} active={['classes', 'class'].includes(view.name)} onClick={() => go('classes')}>Classes</NavButton>
         <NavButton icon={BarChart3} active={view.name === 'reports'} onClick={() => go('reports')}>Reports</NavButton>
@@ -69,7 +70,8 @@ export default function TeacherApp({ user, email, onSignOut }) {
         {isAdmin && <NavButton icon={BookOpen} active={view.name === 'questions'} onClick={() => go('questions')}>Questions</NavButton>}
         {isAdmin && <NavButton icon={SettingsIcon} active={view.name === 'settings'} onClick={() => go('settings')}>Settings</NavButton>}
       </Header>
-      <main className="max-w-6xl mx-auto px-4 py-6">{body}</main>
+      <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-6">{body}</main>
+      <Footer />
     </div>
   );
 }

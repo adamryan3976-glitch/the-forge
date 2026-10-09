@@ -1,6 +1,9 @@
+import { Footer } from './Legal.jsx';
+
 export default function SignInScreen({ onSignIn, error, schoolName = 'Winchester P.S.' }) {
   return (
-    <div className="min-h-screen forge-bg flex items-center justify-center px-4 py-10">
+    <div className="min-h-screen forge-bg flex flex-col">
+      <div className="flex-1 flex items-center justify-center px-4 py-10">
       <div className="max-w-sm w-full text-center">
         <img src={import.meta.env.BASE_URL + 'logo.svg'} alt="The Forge — Winchester Knights" className="w-56 mx-auto mb-4 ember-pulse" />
         <p className="font-display text-gold-300 tracking-[0.2em] text-sm mb-1">MATH CHECK-IN</p>
@@ -15,6 +18,8 @@ export default function SignInScreen({ onSignIn, error, schoolName = 'Winchester
         {error && <p className="text-sm text-rose-200 bg-rose-900/40 rounded-lg px-3 py-2 mt-3" role="alert">{error}</p>}
         <p className="text-xs text-stone-400 mt-6">Students: use your S-number school account. Teachers: use your @ddsb.ca account.</p>
       </div>
+      </div>
+      <Footer dark />
     </div>
   );
 }

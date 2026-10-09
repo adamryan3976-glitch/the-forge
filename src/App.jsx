@@ -5,9 +5,14 @@ import SignInScreen from './components/SignInScreen.jsx';
 import StudentApp from './components/student/StudentApp.jsx';
 import TeacherApp from './components/teacher/TeacherApp.jsx';
 import { Spinner, Button } from './components/ui.jsx';
+import { Footer, LegalPage, useLegalRoute } from './components/Legal.jsx';
 
 export default function App() {
   const { user, loading, error, signIn, logOut } = useAuth();
+  const legal = useLegalRoute();
+
+  // The Privacy Policy and Terms open for anyone, signed in or not.
+  if (legal) return <LegalPage page={legal} />;
 
   if (missingConfig.length) {
     return <Centered title="Firebase isn’t set up yet">The site was built without its Firebase settings ({missingConfig.join(', ')}). See README → “Add your Firebase settings to GitHub”.</Centered>;
@@ -28,11 +33,14 @@ export default function App() {
 
 function Centered({ title, children }) {
   return (
-    <div className="min-h-screen bg-stone-50 flex items-center justify-center px-4">
-      <div className="max-w-md bg-white border border-stone-200 rounded-2xl p-6 text-center">
-        <h1 className="text-xl font-semibold text-stone-800 mb-2">{title}</h1>
-        <div className="text-sm text-stone-600">{children}</div>
+    <div className="min-h-screen bg-stone-50 flex flex-col">
+      <div className="flex-1 flex items-center justify-center px-4">
+        <div className="max-w-md bg-white border border-stone-200 rounded-2xl p-6 text-center">
+          <h1 className="text-xl font-semibold text-stone-800 mb-2">{title}</h1>
+          <div className="text-sm text-stone-600">{children}</div>
+        </div>
       </div>
+      <Footer />
     </div>
   );
 }
