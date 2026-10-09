@@ -10,6 +10,7 @@ import {
 import { seededShuffle } from '../../lib/shuffle.js';
 import { readBackup, writeBackup, clearBackup } from '../../lib/answerBackup.js';
 import { gradeLabel } from '../../constants.js';
+import { Footer } from '../Legal.jsx';
 
 export default function StudentApp({ user, studentNumber: sn, onSignOut }) {
   const [phase, setPhase] = useState('loading'); // loading | message | intro | quiz | review | submitting | done
@@ -139,7 +140,7 @@ export default function StudentApp({ user, studentNumber: sn, onSignOut }) {
   // ---------- Screens ----------
   const header = <Header schoolName={ctx?.cfg?.schoolName || ''} user={user} onSignOut={onSignOut} />;
   const shell = (children) => (
-    <div className="min-h-screen bg-stone-50">{header}<main className="max-w-3xl mx-auto px-4 py-6">{children}</main></div>
+    <div className="min-h-screen bg-stone-50 flex flex-col">{header}<main className="flex-1 w-full max-w-3xl mx-auto px-4 py-6">{children}</main><Footer /></div>
   );
 
   if (phase === 'loading') return shell(<Spinner />);

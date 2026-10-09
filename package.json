@@ -25,5 +25,7 @@
     "firebase-tools": "^15.32.1",
     "tailwindcss": "^4.3.3",
     "vite": "^8.2.2"
-  }
+  },
+  "author": "Ryan Adams and Natasha Allen",
+  "license": "SEE LICENSE IN LICENSE"
 }

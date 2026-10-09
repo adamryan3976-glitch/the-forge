@@ -1,3 +1,8 @@
+/*
+ * The Forge · Math Check-In: Google Sheet tools
+ * Copyright (c) 2026 Ryan Adams and Natasha Allen. All rights reserved.
+ * Not to be copied, modified or distributed without the authors' written permission.
+ */
 /* ===================== Config.gs ===================== */
 /**
  * Config.gs — sheet names, column layouts and default settings.
