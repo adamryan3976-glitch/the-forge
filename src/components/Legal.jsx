@@ -217,7 +217,7 @@ function Privacy() {
       <UL>
         <li><strong>First contact:</strong> the student’s classroom teacher, or Ryan Adams, Winchester P.S. (<a className="text-brand-700 underline" href="mailto:ryan.adams@ddsb.ca">ryan.adams@ddsb.ca</a>).</li>
         <li><strong>School:</strong> the principal of Winchester P.S. (Melissa Shields, <a className="text-brand-700 underline" href="mailto:melissa.shields@ddsb.ca">melissa.shields@ddsb.ca</a>).</li>
-        <li><strong>Formal requests and privacy concerns:</strong> the DDSB Freedom of Information and Privacy Office, attention: Freedom of Information Officer/General Counsel, 400 Taunton Road East, Whitby, ON L1R 2K6; 905-666-5500 ext. 6023 (toll-free 1-800-265-3968); <a className="text-brand-700 underline" href="mailto:foi.privacy@ddsb.ca">foi.privacy@ddsb.ca</a>.</li>
+        <li><strong>Formal requests and privacy concerns:</strong> the DDSB Freedom of Information and Privacy Office, attention: Patrick Cotter, General Counsel (<a className="text-brand-700 underline" href="mailto:patrick.cotter@ddsb.ca">patrick.cotter@ddsb.ca</a>), 400 Taunton Road East, Whitby, ON L1R 2K6; 905-666-5500 ext. 6023 (toll-free 1-800-265-3968); office email <a className="text-brand-700 underline" href="mailto:foi.privacy@ddsb.ca">foi.privacy@ddsb.ca</a>.</li>
       </UL>
       <P>If a privacy breach is suspected, the operator will stop using the affected part of the app, inform the principal and the DDSB privacy office right away, and follow DDSB’s privacy breach protocol.</P>
 
