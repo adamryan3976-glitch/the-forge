@@ -13,7 +13,7 @@ import { ArrowLeft, Printer } from 'lucide-react';
 export const AUTHORS = 'Ryan Adams and Natasha Allen';
 export const COPYRIGHT_YEAR = '2026';
 export const CONTACT_EMAIL = 'ryan.adams@ddsb.ca';
-const PRIVACY_UPDATED = 'October 7, 2026';
+const PRIVACY_UPDATED = 'October 16, 2026';
 const TERMS_UPDATED = 'October 9, 2026';
 
 /** Which legal page the address bar points at: 'privacy' | 'terms' | null */
@@ -115,7 +115,7 @@ function Privacy() {
     <>
       <H1>The Forge: Privacy Policy</H1>
       <Updated>{PRIVACY_UPDATED}</Updated>
-      <P className="text-lg">The Forge is a math check-in for Winchester P.S. students. It collects only what a teacher needs to give each student the right grade-level questions and to see what they know: student number, name, grade, class and multiple-choice answers. It uses basic Google sign-in (name and email only), shows no ads, has no tracking or analytics, and never sells or shares student information.</P>
+      <P className="text-lg">The Forge is a math check-in for Winchester P.S. students. It collects only what a teacher needs to give each student the right grade-level questions and to see what they know: student number, name, grade, class and multiple-choice answers. It uses basic Google sign-in (name, email address and profile picture link), shows no ads, has no tracking or analytics, and never sells student information or shares it with anyone for their own purposes.</P>
 
       <H2>1. Who this policy covers</H2>
       <P>This policy covers <strong>The Forge</strong> (Math Check-In), a website at https://wps-forge.winchesterps.ca/ used by Winchester Public School, Durham District School Board (DDSB).</P>
@@ -152,11 +152,12 @@ function Privacy() {
       </UL>
       <P>Information is <strong>never</strong>:</P>
       <UL>
-        <li>sold, rented or shared with anyone outside DDSB;</li>
+        <li>sold or rented, or shared with any outside organisation or person for their own purposes;</li>
         <li>used for advertising, marketing or building profiles;</li>
         <li>used to train artificial intelligence or machine-learning models;</li>
         <li>used to make automated decisions about a student; teachers interpret all results.</li>
       </UL>
+      <P><strong>Service providers.</strong> The service providers listed in section 5 (Google and GitHub) handle information only to provide their services to The Forge, as described there. They act as service providers under their terms of service and data processing terms. They are not outside parties receiving information for their own purposes.</P>
       <P>CSV files and printouts a teacher creates leave the app and become that teacher’s responsibility under DDSB policy on handling student records.</P>
 
       <H2>4. Who can see information</H2>
@@ -197,7 +198,7 @@ function Privacy() {
         <li><strong>Tested before every update.</strong> Automated tests confirm these rules (for example, that one student cannot read another’s work) before any change to the app is published. A change that fails is not published.</li>
         <li><strong>Encryption.</strong> All traffic uses HTTPS. Google encrypts stored data at rest.</li>
         <li><strong>Least privilege.</strong> Administrator access is limited to named staff. Classes cannot be deleted, only archived, so results keep their context.</li>
-        <li><strong>Minimal sign-in access.</strong> The app asks Google for basic profile information only (name and email). It cannot read students’ Drive, Gmail, Classroom or other Google data.</li>
+        <li><strong>Minimal sign-in access.</strong> The app asks Google for basic profile information only: name, email address and profile picture link. Firebase Authentication also keeps a sign-in record, described in section 5. It cannot read students’ Drive, Gmail, Classroom or other Google data.</li>
       </UL>
 
       <H2>7. Retention and deletion</H2>
@@ -216,7 +217,7 @@ function Privacy() {
       <UL>
         <li><strong>First contact:</strong> the student’s classroom teacher, or Ryan Adams, Winchester P.S. (<a className="text-brand-700 underline" href="mailto:ryan.adams@ddsb.ca">ryan.adams@ddsb.ca</a>).</li>
         <li><strong>School:</strong> the principal of Winchester P.S. (Melissa Shields, <a className="text-brand-700 underline" href="mailto:melissa.shields@ddsb.ca">melissa.shields@ddsb.ca</a>).</li>
-        <li><strong>Formal requests and privacy concerns:</strong> the DDSB Freedom of Information.</li>
+        <li><strong>Formal requests and privacy concerns:</strong> the DDSB Freedom of Information and Privacy Office, attention: Freedom of Information Officer/General Counsel, 400 Taunton Road East, Whitby, ON L1R 2K6; 905-666-5500 ext. 6023 (toll-free 1-800-265-3968); <a className="text-brand-700 underline" href="mailto:foi.privacy@ddsb.ca">foi.privacy@ddsb.ca</a>.</li>
       </UL>
       <P>If a privacy breach is suspected, the operator will stop using the affected part of the app, inform the principal and the DDSB privacy office right away, and follow DDSB’s privacy breach protocol.</P>
 
