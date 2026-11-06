@@ -25,5 +25,7 @@ export function isAdminEmail(email, config, ownerEmails = OWNER_EMAILS) {
   return ownerEmails.includes(e) || (config?.admins || []).map((a) => a.toLowerCase()).includes(e);
 }
 
-// Must match ownerEmails() in firestore.rules.
-export const OWNER_EMAILS = ['adamryan3976@ddsb.ca'];
+// Web version: must match ownerEmails() in firestore.rules.
+// Apps Script version: the account that runs the script, sent by the server.
+const BOOT_OWNER = typeof window !== 'undefined' && window.__FORGE_BOOT__ && window.__FORGE_BOOT__.ownerEmail;
+export const OWNER_EMAILS = BOOT_OWNER ? [String(BOOT_OWNER).toLowerCase()] : ['adamryan3976@ddsb.ca'];

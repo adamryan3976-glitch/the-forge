@@ -1,3 +1,4 @@
+import faviconUrl from '../assets/favicon.svg';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Printer } from 'lucide-react';
 
@@ -13,7 +14,9 @@ import { ArrowLeft, Printer } from 'lucide-react';
 export const AUTHORS = 'Ryan Adams and Natasha Allen';
 export const COPYRIGHT_YEAR = '2026';
 export const CONTACT_EMAIL = 'ryan.adams@ddsb.ca';
-const PRIVACY_UPDATED = 'October 16, 2026';
+// The Apps Script edition stores data differently, so parts of the policy differ.
+const GAS = import.meta.env.VITE_BACKEND === 'gas';
+const PRIVACY_UPDATED = GAS ? 'November 6, 2026' : 'October 16, 2026';
 const TERMS_UPDATED = 'October 9, 2026';
 
 /** Which legal page the address bar points at: 'privacy' | 'terms' | null */
@@ -63,7 +66,7 @@ export function LegalPage({ page }) {
     <div className="min-h-screen bg-stone-50 flex flex-col">
       <header className="iron-bar text-stone-100 no-print">
         <div className="max-w-3xl mx-auto px-4 py-2.5 flex items-center gap-3">
-          <img src={import.meta.env.BASE_URL + 'favicon.svg'} alt="" className="w-9 h-9" />
+          <img src={faviconUrl} alt="" className="w-9 h-9" />
           <div className="font-display font-bold text-lg tracking-wider text-gold-300">The Forge</div>
           <div className="ml-auto flex gap-1">
             <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm text-stone-200 hover:bg-white/10">
@@ -115,10 +118,10 @@ function Privacy() {
     <>
       <H1>The Forge: Privacy Policy</H1>
       <Updated>{PRIVACY_UPDATED}</Updated>
-      <P className="text-lg">The Forge is a math check-in for Winchester P.S. students. It collects only what a teacher needs to give each student the right grade-level questions and to see what they know: student number, name, grade, class and multiple-choice answers. It uses basic Google sign-in (name, email address and profile picture link), shows no ads, has no tracking or analytics, and never sells student information or shares it with anyone for their own purposes.</P>
+      <P className="text-lg">The Forge is a math check-in for Winchester P.S. students. It collects only what a teacher needs to give each student the right grade-level questions and to see what they know: student number, name, grade, class and multiple-choice answers. {GAS ? 'It recognises students and staff by the DDSB Google account already signed in on their device (email address only)' : 'It uses basic Google sign-in (name, email address and profile picture link)'}, shows no ads, has no tracking or analytics, and never sells student information or shares it with anyone for their own purposes.</P>
 
       <H2>1. Who this policy covers</H2>
-      <P>This policy covers <strong>The Forge</strong> (Math Check-In), a website at https://wps-forge.winchesterps.ca/ used by Winchester Public School, Durham District School Board (DDSB).</P>
+      <P>This policy covers <strong>The Forge</strong> (Math Check-In), {GAS ? 'a Google Apps Script web app run within DDSB’s Google Workspace' : 'a website at https://wps-forge.winchesterps.ca/'} used by Winchester Public School, Durham District School Board (DDSB).</P>
       <UL>
         <li><strong>Operated by:</strong> Ryan Adams, teacher, Winchester P.S., on behalf of the school.</li>
         <li><strong>Used by:</strong> Winchester P.S. students (Kindergarten to Grade 8) and staff.</li>
@@ -132,7 +135,9 @@ function Privacy() {
       <Table
         head={['Information', 'About', 'Where it comes from', 'Why it is needed']}
         rows={[
-          ['Google account email, display name, profile picture link, and sign-in times', 'Students and staff', 'Google sign-in (basic profile only)', 'To confirm who is signing in'],
+          GAS
+            ? ['Google account email address', 'Students and staff', 'The DDSB Google account already signed in on the device', 'To confirm who is using the app']
+            : ['Google account email, display name, profile picture link, and sign-in times', 'Students and staff', 'Google sign-in (basic profile only)', 'To confirm who is signing in'],
           ['Student number (the 9 digits in S#########@ddsbstudent.ca)', 'Students', 'Read from the student’s school email at sign-in, or entered by the teacher', 'To link each student to their class and their results across years'],
           ['Student name and grade', 'Students', 'Entered by the teacher, one at a time or by CSV', 'To show the right grade’s questions and label results'],
           ['Class name, school year, teacher name and email', 'Classes and staff', 'Entered by the teacher', 'To organise students into classes'],
@@ -157,7 +162,7 @@ function Privacy() {
         <li>used to train artificial intelligence or machine-learning models;</li>
         <li>used to make automated decisions about a student; teachers interpret all results.</li>
       </UL>
-      <P><strong>Service providers.</strong> The service providers listed in section 5 (Google and GitHub) handle information only to provide their services to The Forge, as described there. They act as service providers under their terms of service and data processing terms. They are not outside parties receiving information for their own purposes.</P>
+      {GAS ? <P><strong>Service providers.</strong> Google, listed in section 5, stores and processes information only to provide Google Workspace services to DDSB, under DDSB’s Google Workspace agreement. It is not an outside party receiving information for its own purposes.</P> : <P><strong>Service providers.</strong> The service providers listed in section 5 (Google and GitHub) handle information only to provide their services to The Forge, as described there. They act as service providers under their terms of service and data processing terms. They are not outside parties receiving information for their own purposes.</P>}
       <P>CSV files and printouts a teacher creates leave the app and become that teacher’s responsibility under DDSB policy on handling student records.</P>
 
       <H2>4. Who can see information</H2>
@@ -175,30 +180,36 @@ function Privacy() {
       <P>A student can be in only one active class at a time. A teacher cannot add a student who is in another teacher’s active class, which prevents anyone from adding a student just to view their results.</P>
 
       <H2>5. Where information is stored and service providers</H2>
-      <P>Student records (classes, rosters and answers) are stored in a Google Cloud Firestore database located in Canada. The services below are the only ones involved. Google provides Firebase as a service provider under its Firebase and Google Cloud data processing terms, and does not use this data for advertising.</P>
+      {GAS ? <P>Student records (classes, rosters and answers) are stored in a private Google Sheet, and question pictures in a private Google Drive folder, in the DDSB Google Workspace account of the app’s operator. They are not shared with anyone: students and teachers never open them directly, only through the app. The services below are the only ones involved.</P> : <P>Student records (classes, rosters and answers) are stored in a Google Cloud Firestore database located in Canada. The services below are the only ones involved. Google provides Firebase as a service provider under its Firebase and Google Cloud data processing terms, and does not use this data for advertising.</P>}
       <Table
         head={['Service', 'What it does', 'Information it handles', 'Location']}
         rows={[
+          ...(GAS ? [
+            ['Google Apps Script (DDSB Google Workspace)', 'Runs the app and checks every request', 'Everything in section 2', 'Per DDSB’s Google Workspace agreement'],
+            ['Google Sheets and Google Drive (DDSB Google Workspace)', 'Stores the app’s data and question pictures', 'Everything in section 2', 'Per DDSB’s Google Workspace agreement'],
+            ['GitHub Pages (GitHub, Inc.)', 'Publishes the app’s program files, which the script downloads', 'No student information. Students’ devices do not contact it', 'United States'],
+          ] : [
           ['Cloud Firestore (Google Firebase)', 'Stores the app’s data', 'Everything in section 2 except the sign-in record', 'Canada, region northamerica-northeast2 (Toronto)'],
           ['Firebase Authentication (Google)', 'Handles Google sign-in', 'Sign-in record: email, display name, profile picture link, sign-in times, and sign-in event logs including IP address', 'Google data centres, which may be outside Canada (typically the United States)'],
           ['GitHub Pages (GitHub, Inc.)', 'Hosts the website’s files', 'No student information. Like any web host, it logs visitors’ IP addresses for security', 'United States'],
+          ]),
           ['DDSB Google Workspace (staff Google Sheet)', 'Where staff write and edit the question bank', 'Questions, answer keys and pictures only, no student information', 'Per DDSB’s Google Workspace agreement'],
           ['The browser’s built-in speech (“Read to me”)', 'Reads a question aloud when a student taps the button', 'Question text only. Some browsers, such as Chrome, may use an online voice service for this', 'Depends on the browser'],
         ]}
       />
-      <P><strong>On the device:</strong> the browser keeps the student or teacher signed in until they sign out. While a student is working, a backup of their own answer letters is kept in the browser so nothing is lost if the connection drops; it is deleted when they hand in. Students on shared devices should sign out when finished.</P>
+      <P><strong>On the device:</strong> {GAS ? 'the app uses the Google account already signed in on the device and has no sign-in of its own.' : 'the browser keeps the student or teacher signed in until they sign out.'} While a student is working, a backup of their own answer letters is kept in the browser so nothing is lost if the connection drops; it is deleted when they hand in. Students on shared devices should sign out{GAS ? ' of their Google account' : ''} when finished.</P>
       <P>The app uses no cookies for tracking, no analytics, and no advertising or social-media code. Its fonts and images are served from the app’s own files, so browsers do not contact other websites for them. Its source code is published on GitHub; it contains no student information, passwords or private keys.</P>
 
       <H2>6. Security safeguards</H2>
       <UL>
-        <li><strong>Sign-in through Google only.</strong> No separate passwords are created or stored. Only verified @ddsb.ca and S#########@ddsbstudent.ca accounts can see or save anything. Any other Google account that signs in is shown a “use your school account” message and is refused all data.</li>
-        <li><strong>Server-enforced access rules.</strong> Every read and write is checked by Firestore security rules on Google’s servers (section 4).</li>
+        {GAS ? <li><strong>DDSB Google accounts only.</strong> No separate passwords are created or stored. The app opens only for DDSB Google accounts, and only @ddsb.ca and S#########@ddsbstudent.ca accounts can see or save anything.</li> : <li><strong>Sign-in through Google only.</strong> No separate passwords are created or stored. Only verified @ddsb.ca and S#########@ddsbstudent.ca accounts can see or save anything. Any other Google account that signs in is shown a “use your school account” message and is refused all data.</li>}
+        <li><strong>Server-enforced access rules.</strong> {GAS ? 'Every read and write is checked by the app’s script on Google’s servers before anything is shown or saved (section 4).' : 'Every read and write is checked by Firestore security rules on Google’s servers (section 4).'}</li>
         <li><strong>Answer key withheld from students.</strong> Answer keys are readable by staff only, and scoring happens on staff screens, so the key never reaches a student’s device.</li>
         <li><strong>Locked submissions.</strong> A student’s check-in cannot be changed after it is handed in, and students can only start a check-in for their own grade and class, while the check-in is open.</li>
         <li><strong>Tested before every update.</strong> Automated tests confirm these rules (for example, that one student cannot read another’s work) before any change to the app is published. A change that fails is not published.</li>
         <li><strong>Encryption.</strong> All traffic uses HTTPS. Google encrypts stored data at rest.</li>
         <li><strong>Least privilege.</strong> Administrator access is limited to named staff. Classes cannot be deleted, only archived, so results keep their context.</li>
-        <li><strong>Minimal sign-in access.</strong> The app asks Google for basic profile information only: name, email address and profile picture link. Firebase Authentication also keeps a sign-in record, described in section 5. It cannot read students’ Drive, Gmail, Classroom or other Google data.</li>
+        {GAS ? <li><strong>Minimal access.</strong> The app reads only the email address of the signed-in account. It cannot read students’ Drive, Gmail, Classroom or other Google data.</li> : <li><strong>Minimal sign-in access.</strong> The app asks Google for basic profile information only: name, email address and profile picture link. Firebase Authentication also keeps a sign-in record, described in section 5. It cannot read students’ Drive, Gmail, Classroom or other Google data.</li>}
       </UL>
 
       <H2>7. Retention and deletion</H2>
@@ -206,7 +217,7 @@ function Privacy() {
       <UL>
         <li><strong>Check-in results</strong> are kept while the student attends the school, then deleted by a school administrator.</li>
         <li><strong>Students who leave the school</strong> have their results and roster entries deleted within 1 year of leaving.</li>
-        <li><strong>Sign-in records</strong> for former students and staff are deleted at the same time.</li>
+        {!GAS && <li><strong>Sign-in records</strong> for former students and staff are deleted at the same time.</li>}
         <li><strong>Class lists</strong> are archived (read-only) at the end of each school year and deleted with the results they belong to.</li>
         <li><strong>On request:</strong> the school will delete a student’s information when DDSB policy allows, for example at a parent or guardian’s request (section 8).</li>
       </UL>

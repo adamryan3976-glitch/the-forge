@@ -50,7 +50,7 @@ export default function Settings({ cfg, me, firstRun, onSaved }) {
         <Field label="Admins (one per line) — they see every class and manage questions and settings">
           <textarea className={inputCls + ' h-28 font-mono text-xs'} value={c.adminsText} onChange={(e) => set('adminsText', e.target.value)} placeholder={`principal@${STAFF_DOMAIN}`} />
         </Field>
-        <p className="text-xs text-stone-500">Always an admin (set in the security rules): {OWNER_EMAILS.join(', ')}. You are signed in as {me.email}.</p>
+        <p className="text-xs text-stone-500">Always an admin (the app’s owner): {OWNER_EMAILS.join(', ')}. You are signed in as {me.email}.</p>
         <ErrorBox>{error}</ErrorBox>
         <OkBox>{ok}</OkBox>
         <div className="flex justify-end"><Button variant="primary" onClick={save} disabled={busy}>Save settings</Button></div>
