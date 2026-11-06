@@ -20,6 +20,11 @@ Same building blocks as the FDK Letter Tracker: React + Vite on **GitHub Pages**
 
 ---
 
+## Apps Script edition (no student sign-in needed)
+While student Google sign-in waits for IT approval, the same app can run as a Google Apps Script web app inside DDSB's Google Workspace, with data in a private Google Sheet. See [`apps-script-web/README.md`](apps-script-web/README.md).
+
+---
+
 ## How it's secured
 
 All access rules live in [`firestore.rules`](firestore.rules). They are enforced on Google's servers, so nothing done in a browser can get around them. [`test/rules/rules.test.js`](test/rules/rules.test.js) checks each rule below, and GitHub runs those checks before every publish.

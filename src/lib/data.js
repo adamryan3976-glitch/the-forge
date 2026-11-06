@@ -3,7 +3,7 @@
 
 import {
   collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, writeBatch,
-  serverTimestamp, FieldPath, documentId,
+  serverTimestamp, FieldPath, documentId, onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import { DEFAULT_CONFIG, CHOICES } from '../constants.js';
@@ -172,6 +172,12 @@ export async function startAttempt(sn, attemptId, data) {
 export function saveAnswer(sn, attemptId, qid, letter, answeredCount) {
   return updateDoc(attemptRef(sn, attemptId), new FieldPath('answers', qid), letter,
     'answeredCount', answeredCount, 'updatedAt', serverTimestamp());
+}
+
+/** Calls back with true while answers are still waiting to be sent. */
+export function watchPending(sn, attemptId, cb) {
+  return onSnapshot(attemptRef(sn, attemptId), { includeMetadataChanges: true },
+    (snap) => cb(snap.metadata.hasPendingWrites), () => {});
 }
 
 export function submitAttempt(sn, attemptId, answers) {

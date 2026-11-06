@@ -39,3 +39,4 @@ firestore-debug.log
 
 # Local UI preview with fake data (contains a copy of the answer key)
 preview/
+dist-gas

@@ -1,11 +1,11 @@
+import logoUrl from '../../assets/logo.svg';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { onSnapshot } from 'firebase/firestore';
 import { Volume2, ChevronLeft, ChevronRight, Check, CloudOff, Loader2 } from 'lucide-react';
 import Header from '../Header.jsx';
 import { Spinner, Button, ErrorBox } from '../ui.jsx';
 import {
   getEnrolment, getConfig, getAttempts, getQuestionsForGrade, getQuestionsByIds, getQuestionImages,
-  startAttempt, saveAnswer, submitAttempt, attemptRef,
+  startAttempt, saveAnswer, submitAttempt, watchPending,
 } from '../../lib/data.js';
 import { seededShuffle } from '../../lib/shuffle.js';
 import { readBackup, writeBackup, clearBackup } from '../../lib/answerBackup.js';
@@ -104,8 +104,7 @@ export default function StudentApp({ user, studentNumber: sn, onSignOut }) {
   // Watch whether answers are still waiting to be sent.
   useEffect(() => {
     if (!quiz) return undefined;
-    return onSnapshot(attemptRef(sn, quiz.attemptId), { includeMetadataChanges: true },
-      (snap) => setPending(snap.metadata.hasPendingWrites), () => {});
+    return watchPending(sn, quiz.attemptId, setPending);
   }, [quiz, sn]);
 
   const answersRef = useRef({});
@@ -297,7 +296,7 @@ export function Big({ emoji, logo, title, children }) {
   return (
     <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center shadow-sm">
       {logo
-        ? <img src={import.meta.env.BASE_URL + 'logo.svg'} alt="" className="w-32 mx-auto mb-3 ember-pulse" />
+        ? <img src={logoUrl} alt="" className="w-32 mx-auto mb-3 ember-pulse" />
         : <div className="text-6xl mb-3" aria-hidden="true">{emoji}</div>}
       <h1 className="font-display text-2xl font-bold text-stone-800 tracking-wide mb-2">{title}</h1>
       <div className="text-stone-600">{children}</div>
