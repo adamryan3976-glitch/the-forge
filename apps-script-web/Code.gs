@@ -109,8 +109,14 @@ function setup() {
 /** Downloads the latest app screens from GitHub. Runs every hour (trigger). */
 function refreshApp() {
   var email = activeEmail_();
-  // Allowed for the owner and for the hourly trigger (which has no active user).
   if (email && email !== ownerEmail_()) deny_('Only the owner can do this.');
+  if (email !== ownerEmail_()) {
+    // The hourly trigger (no active user). Anyone else reaching this can't make it run more often.
+    var props = PropertiesService.getScriptProperties();
+    var last = Number(props.getProperty('APP_FETCHED_AT') || 0);
+    if (Date.now() - last < 50 * 60 * 1000) return false;
+    props.setProperty('APP_FETCHED_AT', String(Date.now()));
+  }
   return fetchApp_();
 }
 
@@ -165,6 +171,7 @@ var API_ = {
   },
   updateClass: function (me, a) {
     requireStaff_(me);
+    a.id = String(a.id || '');
     return withLock_(function () {
       var cls = db_().get('classes', a.id);
       if (!cls) deny_('That class no longer exists.');
@@ -201,6 +208,7 @@ var API_ = {
   /** Adds or updates one student. Returns { status: added|updated|moved|conflict, fromClass }. */
   upsertStudent: function (me, a) {
     requireStaff_(me);
+    a.classId = String(a.classId || '');
     var st = a.student || {};
     var sn = String(st.studentNumber || '');
     if (!/^\d{9}$/.test(sn)) deny_('A student number must be 9 digits.');
@@ -237,6 +245,7 @@ var API_ = {
 
   removeStudent: function (me, a) {
     requireStaff_(me);
+    a.classId = String(a.classId || '');
     var sn = String(a.sn || '');
     return withLock_(function () {
       var db = db_();
@@ -291,14 +300,16 @@ var API_ = {
 
   startAttempt: function (me, a) {
     requireStudent_(me);
+    rateLimit_(me);
     var cfg = config_();
     if (cfg.assessmentOpen !== true) deny_('The check-in is closed.');
     var id = String(a.attemptId || '');
     var okId = id === cfg.windowKey + '__1' ||
-      (cfg.allowRetakes === true && new RegExp('^' + cfg.windowKey + '__[0-9]{1,3}$').test(id));
+      (cfg.allowRetakes === true && new RegExp('^' + cfg.windowKey + '__[1-9][0-9]?$').test(id));
     if (!okId) deny_('That check-in is not available.');
     var qids = Array.isArray(a.questionIds) ? a.questionIds.map(String) : [];
     if (!qids.length || qids.length > 120) deny_('That check-in has no questions.');
+    if (db_().get('attempts', me.sn + '/' + id)) deny_('This check-in has already been started.');   // cheap check before the lock
     return withLock_(function () {
       var db = db_();
       var en = db.get('enrolments', me.sn);
@@ -307,13 +318,18 @@ var API_ = {
       if (!cls || cls.archived === true) deny_('Your class is closed.');
       var key = me.sn + '/' + id;
       if (db.get('attempts', key)) deny_('This check-in has already been started.');
-      // Only real, active questions for the student's own grade.
-      var qs = {};
-      db.all('questions').forEach(function (q) { qs[q.id] = q; });
-      qids.forEach(function (qid) {
-        var q = qs[qid];
-        if (!q || q.active !== true || q.grade !== en.grade) deny_('Those questions are not for your grade.');
+      // Exactly the active questions for the student's own grade (in any order).
+      var want = {};
+      var count = 0;
+      db.all('questions').forEach(function (q) {
+        if (q.active === true && q.grade === en.grade) { want[q.id] = true; count++; }
       });
+      var seen = {};
+      qids.forEach(function (qid) {
+        if (!Object.prototype.hasOwnProperty.call(want, qid) || seen[qid]) deny_('Those questions are not this grade’s check-in.');
+        seen[qid] = true;
+      });
+      if (qids.length !== count) deny_('Those questions are not this grade’s check-in.');
       var now = Date.now();
       var at = {
         studentNumber: me.sn, studentName: en.name, grade: en.grade, classId: en.classId,
@@ -496,29 +512,49 @@ function classOrDeny_(id) {
 
 function writeAnswers_(me, a, submit) {
   requireStudent_(me);
+  rateLimit_(me);
   var cfg = config_();
   if (cfg.assessmentOpen !== true) deny_('The check-in is closed.');
   var key = me.sn + '/' + String(a.attemptId || '');
+  // Cheap refusals before waiting for the lock.
+  var first = db_().get('attempts', key);
+  if (!first) deny_('That check-in was not found.');
+  if (first.status !== 'in_progress') deny_('This check-in has already been handed in.');
   return withLock_(function () {
     var db = db_();
     var at = db.get('attempts', key);
     if (!at) deny_('That check-in was not found.');
     if (at.status !== 'in_progress') deny_('This check-in has already been handed in.');
-    var allowed = {};
-    (at.questionIds || []).forEach(function (q) { allowed[q] = true; });
-    var incoming = a.answers || {};
-    Object.keys(incoming).forEach(function (qid) {
-      var letter = String(incoming[qid]);
-      if (allowed[qid] && FORGE_.CHOICES.indexOf(letter) >= 0) at.answers[qid] = letter;
+    var incoming = (a.answers && typeof a.answers === 'object') ? a.answers : {};
+    var clean = {};
+    (at.questionIds || []).forEach(function (qid) {
+      var fresh = Object.prototype.hasOwnProperty.call(incoming, qid) ? String(incoming[qid]) : '';
+      var saved = Object.prototype.hasOwnProperty.call(at.answers || {}, qid) ? String(at.answers[qid]) : '';
+      if (FORGE_.CHOICES.indexOf(fresh) >= 0) clean[qid] = fresh;          // a new valid answer
+      else if (FORGE_.CHOICES.indexOf(saved) >= 0) clean[qid] = saved;     // otherwise keep what was saved
     });
+    at.answers = clean;
     var now = Date.now();
-    at.answeredCount = Object.keys(at.answers).length;
+    at.answeredCount = Object.keys(clean).length;
     at.updatedAt = now;
     if (submit) { at.status = 'submitted'; at.submittedAt = now; }
     delete at.id;
     db.put('attempts', key, at);
     return { answeredCount: at.answeredCount, status: at.status };
   });
+}
+
+/**
+ * Stops one person flooding the script (which would slow saving for everyone).
+ * Normal use is one save every couple of seconds; this allows bursts of 12 per 20 s.
+ */
+function rateLimit_(me) {
+  if (typeof CacheService === 'undefined') return;
+  var cache = CacheService.getScriptCache();
+  var key = 'rl:' + me.email + ':' + Math.floor(Date.now() / 20000);
+  var n = Number(cache.get(key) || 0) + 1;
+  cache.put(key, String(n), 40);
+  if (n > 12) throw new Error('Too many saves at once. Please wait a moment.');
 }
 
 function deny_(msg) {

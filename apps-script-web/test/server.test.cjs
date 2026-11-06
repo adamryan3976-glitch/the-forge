@@ -101,8 +101,10 @@ test('a student starts a check-in only for their own grade, class and the curren
   denied(() => me('startAttempt', { attemptId: 'fall-2026__1', questionIds: ['G4-001'] }));     // another grade
   denied(() => me('startAttempt', { attemptId: 'fall-2026__1', questionIds: ['NOPE'] }));       // not a question
   denied(() => s.as(stu(S2))('startAttempt', { attemptId: 'fall-2026__1', questionIds: ['G3-001'] })); // not enrolled
-  assert.equal(me('startAttempt', { attemptId: 'fall-2026__1', questionIds: ['G3-001', 'G3-002'] }), true);
-  denied(() => me('startAttempt', { attemptId: 'fall-2026__1', questionIds: ['G3-001'] }));     // only once
+  denied(() => me('startAttempt', { attemptId: 'fall-2026__1', questionIds: ['G3-001'] }));     // must be the whole check-in
+  denied(() => me('startAttempt', { attemptId: 'fall-2026__1', questionIds: ['G3-001', 'G3-001'] })); // no repeats
+  assert.equal(me('startAttempt', { attemptId: 'fall-2026__1', questionIds: ['G3-002', 'G3-001'] }), true);
+  denied(() => me('startAttempt', { attemptId: 'fall-2026__1', questionIds: ['G3-001', 'G3-002'] }));     // only once
   const at = s.db.get('attempts', `${S1}/fall-2026__1`);
   assert.equal(at.studentName, 'Ava One');   // name comes from the class list, not the browser
   assert.equal(at.grade, '3');
@@ -113,9 +115,9 @@ test('answers save as they go; after handing in nothing can change', () => {
   const me = s.as(stu(S1));
   me('startAttempt', { attemptId: 'fall-2026__1', questionIds: ['G3-001', 'G3-002'] });
   me('saveAnswers', { attemptId: 'fall-2026__1', answers: { 'G3-001': 'A' } });
-  me('saveAnswers', { attemptId: 'fall-2026__1', answers: { 'G3-002': 'A', 'G4-001': 'A', 'G3-001': 'Z' } }); // bad ones ignored
+  me('saveAnswers', { attemptId: 'fall-2026__1', answers: { 'G3-002': 'A', 'G4-001': 'A', 'G3-001': 'Z', constructor: 'A', toString: 'B', __proto__: { x: 1 } } }); // bad ones ignored
   let at = s.db.get('attempts', `${S1}/fall-2026__1`);
-  assert.deepEqual(at.answers, { 'G3-001': 'A', 'G3-002': 'A' });
+  assert.equal(JSON.stringify(at.answers), JSON.stringify({ 'G3-001': 'A', 'G3-002': 'A' }));
   assert.equal(at.answeredCount, 2);
   me('submitAttempt', { attemptId: 'fall-2026__1', answers: { 'G3-001': 'B' } });
   at = s.db.get('attempts', `${S1}/fall-2026__1`);
@@ -127,9 +129,32 @@ test('answers save as they go; after handing in nothing can change', () => {
   denied(() => s.as(stu(S2))('saveAnswers', { attemptId: 'fall-2026__1', answers: { 'G3-001': 'A' } }));
 });
 
+test('retakes: only sensible attempt numbers', () => {
+  const s = school();
+  s.as(OWNER)('saveConfig', { cfg: { ...s.as(OWNER)('getConfig'), allowRetakes: true } });
+  const me = s.as(stu(S1));
+  const qs = ['G3-001', 'G3-002'];
+  denied(() => me('startAttempt', { attemptId: 'fall-2026__0', questionIds: qs }));
+  denied(() => me('startAttempt', { attemptId: 'fall-2026__007', questionIds: qs }));
+  denied(() => me('startAttempt', { attemptId: 'fall-2026__100', questionIds: qs }));
+  assert.equal(me('startAttempt', { attemptId: 'fall-2026__2', questionIds: qs }), true);
+});
+
+test('one person sending saves too fast is slowed down', () => {
+  const s = school();
+  const store = new Map();
+  s.ctx.CacheService = { getScriptCache: () => ({ get: (k) => store.get(k) ?? null, put: (k, v) => store.set(k, v) }) };
+  const me = s.as(stu(S1));
+  me('startAttempt', { attemptId: 'fall-2026__1', questionIds: ['G3-001', 'G3-002'] });
+  let blocked = 0;
+  for (let i = 0; i < 20; i++) { try { me('saveAnswers', { attemptId: 'fall-2026__1', answers: { 'G3-001': 'A' } }); } catch (e) { if (/Too many/.test(e.message)) blocked++; } }
+  assert.ok(blocked > 0);
+  delete s.ctx.CacheService;
+});
+
 test('closing the check-in stops new attempts and new answers', () => {
   const s = school();
-  s.as(stu(S1))('startAttempt', { attemptId: 'fall-2026__1', questionIds: ['G3-001'] });
+  s.as(stu(S1))('startAttempt', { attemptId: 'fall-2026__1', questionIds: ['G3-001', 'G3-002'] });
   s.as(OWNER)('saveConfig', { cfg: { ...s.as(OWNER)('getConfig'), assessmentOpen: false } });
   denied(() => s.as(stu(S1))('saveAnswers', { attemptId: 'fall-2026__1', answers: { 'G3-001': 'A' } }));
 });
@@ -137,7 +162,7 @@ test('closing the check-in stops new attempts and new answers', () => {
 test('students cannot read other students’ attempts, class lists or classes', () => {
   const s = school();
   s.as(TA)('upsertStudent', { classId: s.A, student: { studentNumber: S2, name: 'Ben Two', grade: '3' } });
-  s.as(stu(S2))('startAttempt', { attemptId: 'fall-2026__1', questionIds: ['G3-001'] });
+  s.as(stu(S2))('startAttempt', { attemptId: 'fall-2026__1', questionIds: ['G3-001', 'G3-002'] });
   denied(() => s.as(stu(S1))('getAttempts', { sn: S2 }));
   denied(() => s.as(stu(S1))('getRoster', { classId: s.A }));
   denied(() => s.as(stu(S1))('listClasses'));
@@ -211,7 +236,7 @@ test('a class is always created as yourself', () => {
 
 test('results: the student’s teacher and admins can read; other teachers cannot', () => {
   const s = school();
-  s.as(stu(S1))('startAttempt', { attemptId: 'fall-2026__1', questionIds: ['G3-001'] });
+  s.as(stu(S1))('startAttempt', { attemptId: 'fall-2026__1', questionIds: ['G3-001', 'G3-002'] });
   assert.equal(s.as(TA)('getAttemptsFor', { numbers: [S1] })[S1].length, 1);
   assert.equal(s.as(ADMIN)('getAttempts', { sn: S1 }).length, 1);
   assert.equal(s.as(TB)('getAttemptsFor', { numbers: [S1] })[S1].length, 0);
@@ -237,6 +262,9 @@ test('only admins change settings and questions', () => {
   denied(() => s.as(TA)('saveQuestionImage', { id: 'G3-001', slot: 'Q', data: 'data:image/png;base64,AAAA' }));
   denied(() => s.as(TA)('deactivateMissing', { ids: [] }));
   denied(() => s.as(stu(S1))('refreshApp'));
+  // Ids that aren't text don't sneak into records.
+  s.as(TA)('upsertStudent', { classId: [s.A], student: { studentNumber: S3, name: 'Cy', grade: '3' } });
+  assert.equal(typeof s.db.get('enrolments', S3).classId, 'string');
   // An admin can; settings are cleaned up on the way in.
   s.as(ADMIN)('saveConfig', { cfg: { ...cfg, admins: [ADMIN, 'evil@gmail.com'], strengthThreshold: 500 } });
   const c2 = s.as(TA)('getConfig');
